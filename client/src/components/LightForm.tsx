@@ -23,7 +23,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface LightFormProps {
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: FormData) => Promise<boolean>;
   isSubmitting?: boolean;
   availableBuildings: number;
 }
@@ -37,9 +37,11 @@ export default function LightForm({ onSubmit, isSubmitting, availableBuildings }
     },
   });
 
-  const handleSubmit = (data: FormData) => {
-    onSubmit(data);
-    form.reset();
+  const handleSubmit = async (data: FormData) => {
+    const success = await onSubmit(data);
+    if (success) {
+      form.reset();
+    }
   };
 
   const isDisabled = availableBuildings === 0;
