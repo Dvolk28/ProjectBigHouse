@@ -6,6 +6,15 @@ Project Skyline – Cleveland is an interactive web application that creates a d
 
 The application features a cinematic, dark-themed interface with purple neon accents that provides an immersive experience. Users can view the skyline, see who has illuminated buildings (via tooltips), and submit their own name and goal to light up an unlit building with a glowing purple effect.
 
+## Recent Changes
+
+### November 2024
+- Initial implementation of full-stack application
+- Backend API with in-memory storage for buildings
+- Frontend connected to backend with TanStack Query for data fetching
+- Form submission with proper loading states and error handling
+- E2E tested form submission, building illumination, and tooltip display
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -47,23 +56,27 @@ Preferred communication style: Simple, everyday language.
 - Static file serving for production builds
 
 **Data Layer**
-- **Drizzle ORM** for type-safe database interactions
-- **PostgreSQL** database (configured for Neon serverless)
+- **In-memory storage** (MemStorage class) for building data
 - Schema definitions shared between client and server via `/shared` directory
-- In-memory fallback storage implementation for development (`MemStorage` class)
+- Buildings initialized on server start with 15 Cleveland landmark buildings
 
 **API Design**
 - RESTful API endpoints under `/api` prefix
 - Endpoints:
   - `GET /api/buildings` - Retrieve all buildings with illumination status
+  - `GET /api/stats` - Get counts of lit/unlit buildings
   - `POST /api/illuminate` - Illuminate a random unlit building with user data
 - **Zod** schemas for request validation with detailed error messages
 - JSON-based request/response format
 
-**Database Schema**
-- `buildings` table: Stores building metadata (name, dimensions, style, z-index) and illumination state (isLit, ownerName, goal)
-- `users` table: Basic user authentication structure (currently unused in main flow)
-- 15 pre-defined buildings initialized on server start representing Cleveland landmarks (Key Tower, Terminal Tower, 200 Public Square, etc.)
+**Building Schema**
+- id: Unique identifier (b1-b15)
+- name: Building name (Key Tower, Terminal Tower, etc.)
+- height/width: Dimensions for CSS rendering
+- style: Visual style (modern, classic, tower, spire)
+- zIndex: Layering order
+- isLit: Whether building is illuminated
+- ownerName/goal: User data for illuminated buildings
 
 ### Key Architectural Decisions
 
@@ -99,16 +112,11 @@ Preferred communication style: Simple, everyday language.
 
 ## External Dependencies
 
-### Core Infrastructure
-- **Neon Database** (@neondatabase/serverless) - Serverless PostgreSQL hosting
-- **Drizzle Kit** - Database migrations and schema management
-
 ### UI & Styling
 - **Tailwind CSS** - Utility-first CSS framework
 - **shadcn/ui** - Component library built on Radix UI
 - **Radix UI** - Complete suite of accessible component primitives (accordion, dialog, tooltip, etc.)
 - **Lucide React** - Icon library for UI elements
-- **Embla Carousel** - Carousel/slider functionality
 
 ### Form Management
 - **React Hook Form** - Performant form state management
@@ -119,10 +127,7 @@ Preferred communication style: Simple, everyday language.
 - **Vite** - Frontend build tool and dev server
 - **esbuild** - Fast JavaScript bundler for production builds
 - **TypeScript** - Static type checking
-- **@replit/vite-plugin-runtime-error-modal** - Development error overlay
-- **@replit/vite-plugin-cartographer** - Replit-specific development tooling
 
 ### Utilities
-- **date-fns** - Date manipulation library
-- **nanoid** - Unique ID generation
 - **wouter** - Lightweight routing library
+- **TanStack Query** - Server state management
