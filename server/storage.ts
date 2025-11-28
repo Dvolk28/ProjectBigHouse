@@ -14,21 +14,21 @@ export interface IStorage {
 }
 
 const initialBuildingsData: Omit<Building, "isLit" | "ownerName" | "goal">[] = [
-  { id: "b1", name: "Building 1", height: 100, width: 28, style: "modern", zIndex: 1 },
-  { id: "b2", name: "Building 2", height: 140, width: 32, style: "classic", zIndex: 2 },
-  { id: "b3", name: "Building 3", height: 180, width: 38, style: "modern", zIndex: 3 },
-  { id: "b4", name: "200 Public Square", height: 220, width: 50, style: "tower", zIndex: 4 },
-  { id: "b5", name: "Building 5", height: 260, width: 42, style: "modern", zIndex: 5 },
-  { id: "b6", name: "Key Tower", height: 320, width: 58, style: "spire", zIndex: 10 },
-  { id: "b7", name: "Terminal Tower", height: 280, width: 52, style: "tower", zIndex: 8 },
-  { id: "b8", name: "Building 8", height: 240, width: 44, style: "classic", zIndex: 6 },
-  { id: "b9", name: "Building 9", height: 200, width: 40, style: "modern", zIndex: 4 },
-  { id: "b10", name: "Building 10", height: 160, width: 36, style: "tower", zIndex: 3 },
-  { id: "b11", name: "Building 11", height: 130, width: 34, style: "modern", zIndex: 2 },
-  { id: "b12", name: "Building 12", height: 110, width: 30, style: "classic", zIndex: 1 },
-  { id: "b13", name: "Building 13", height: 90, width: 26, style: "modern", zIndex: 1 },
-  { id: "b14", name: "Building 14", height: 150, width: 35, style: "tower", zIndex: 2 },
-  { id: "b15", name: "Building 15", height: 190, width: 42, style: "classic", zIndex: 3 },
+  { id: "b1", name: "Society Tower", height: 90, width: 28, style: "modern", zIndex: 1 },
+  { id: "b2", name: "Anthony J. Celebrezze Building", height: 130, width: 35, style: "fedReserve", zIndex: 2 },
+  { id: "b3", name: "One Cleveland Center", height: 170, width: 40, style: "huntington", zIndex: 3 },
+  { id: "b4", name: "Federal Reserve Bank", height: 120, width: 45, style: "fedReserve", zIndex: 2 },
+  { id: "b5", name: "Huntington Building", height: 200, width: 42, style: "huntington", zIndex: 5 },
+  { id: "b6", name: "PNC Center", height: 240, width: 48, style: "pnc", zIndex: 6 },
+  { id: "b7", name: "Key Tower", height: 320, width: 60, style: "keyTower", zIndex: 10 },
+  { id: "b8", name: "Terminal Tower", height: 280, width: 55, style: "terminalTower", zIndex: 9 },
+  { id: "b9", name: "200 Public Square", height: 260, width: 52, style: "publicSquare", zIndex: 8 },
+  { id: "b10", name: "Tower at Erieview", height: 220, width: 38, style: "erieview", zIndex: 7 },
+  { id: "b11", name: "55 Public Square", height: 180, width: 44, style: "modern", zIndex: 4 },
+  { id: "b12", name: "Ernst & Young Tower", height: 150, width: 36, style: "modern", zIndex: 3 },
+  { id: "b13", name: "Justice Center", height: 140, width: 50, style: "classic", zIndex: 2 },
+  { id: "b14", name: "Ritz-Carlton", height: 110, width: 32, style: "classic", zIndex: 1 },
+  { id: "b15", name: "Sherwin-Williams HQ", height: 100, width: 30, style: "modern", zIndex: 1 },
 ];
 
 export class MemStorage implements IStorage {

@@ -3,10 +3,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function BuildingExample() {
   const buildings: BuildingData[] = [
-    { id: "1", name: "Tower 1", height: 200, width: 50, isLit: false, style: "modern" },
-    { id: "2", name: "Key Tower", height: 280, width: 60, isLit: true, ownerName: "Alex Chen", goal: "To become a software engineer and build apps that help people", style: "spire" },
-    { id: "3", name: "Terminal Tower", height: 240, width: 55, isLit: true, ownerName: "Maria Santos", goal: "Launch my own business by age 25", style: "tower" },
-    { id: "4", name: "Classic Building", height: 180, width: 65, isLit: false, style: "classic" },
+    { id: "1", name: "Modern Tower", height: 180, width: 40, isLit: false, style: "modern" },
+    { id: "2", name: "Key Tower", height: 320, width: 60, isLit: true, ownerName: "Alex Chen", goal: "To become a software engineer and build apps that help people", style: "keyTower" },
+    { id: "3", name: "Terminal Tower", height: 280, width: 55, isLit: true, ownerName: "Maria Santos", goal: "Launch my own business by age 25", style: "terminalTower" },
+    { id: "4", name: "200 Public Square", height: 220, width: 52, isLit: false, style: "publicSquare" },
   ];
 
   return (

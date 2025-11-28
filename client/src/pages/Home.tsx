@@ -6,6 +6,7 @@ import LightForm from "@/components/LightForm";
 import { BuildingData } from "@/components/Building";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { playIlluminateSound } from "@/lib/sounds";
 import { Building } from "@shared/schema";
 
 export default function Home() {
@@ -29,6 +30,8 @@ export default function Home() {
     onSuccess: (illuminatedBuilding: Building) => {
       queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      
+      playIlluminateSound();
       
       toast({
         title: "Your light shines bright!",
@@ -80,7 +83,7 @@ export default function Home() {
     isLit: b.isLit,
     ownerName: b.ownerName ?? undefined,
     goal: b.goal ?? undefined,
-    style: b.style as "modern" | "classic" | "tower" | "spire",
+    style: b.style as BuildingData["style"],
     zIndex: b.zIndex,
   }));
 
