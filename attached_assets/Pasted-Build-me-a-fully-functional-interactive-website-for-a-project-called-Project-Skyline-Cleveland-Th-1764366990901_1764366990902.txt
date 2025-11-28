@@ -1,0 +1,68 @@
+Build me a fully functional interactive website for a project called Project Skyline – Cleveland. The website should display a digital version of the Cleveland skyline, inspired by the real buildings (Key Tower, Terminal Tower, 200 Public Square, etc.). Use a night-time aesthetic, deep navy backgrounds, and purple LED-style building lights, similar to how Cleveland lights its skyline for special events.
+
+The website needs the following core features:
+
+Digital Cleveland Skyline
+
+Create several building elements of different heights that visually resemble Key Tower, Terminal Tower, 200 Public Square, and surrounding buildings.
+
+Each building should be rendered in CSS as a rectangular structure with smooth edges.
+
+Buildings should be “unlit” initially (darker color).
+
+When illuminated, they should glow purple with a soft LED-like effect (glow / box-shadow).
+
+Interactive “Light Your Mark” Function
+
+Include a clean and modern form allowing the user to enter:
+
+Their name
+
+Their goal / ambition
+
+When the user submits the form:
+
+A random unlit building should illuminate with a glowing purple color.
+
+A smooth animation should fade or glow the building from dark to lit.
+
+Hovering over that building should display a tooltip containing the person’s name and goal.
+
+Animations
+
+Buildings should light up with:
+
+a soft fade-in
+
+a glow spread
+
+Buttons and headers should have subtle hover animations.
+
+Interface and Style
+
+Dark-night city background (#070b14 or similar).
+
+Neon purple accents (#a970ff).
+
+Clean modern UI with a centered header:
+
+Title: “Project Skyline – Cleveland”
+
+Subtitle: “Light your mark on the skyline.”
+
+A main button labeled “Add Your Light” that scrolls down smoothly to the form.
+
+Technical Requirements
+
+Use HTML/CSS/JavaScript only (no external frameworks needed).
+
+Keep all code in one index.html file unless you choose to separate it.
+
+Use CSS for skyline shapes and JS for interactivity.
+
+Include comments in the code so I can modify it later.
+
+Overall Goal of the Site
+This website represents the concept of digitally “lighting up the skyline” to symbolize individual ambition, unity, and identity—every light on the skyline corresponds to a student’s personal goal.
+
+Make the final page polished, responsive, and visually cinematic. It should feel like the early prototype of a real public-facing movement.
