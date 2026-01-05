@@ -47,9 +47,20 @@ export class MemStorage implements IStorage {
   private buildings: Map<string, Building>;
 
   constructor() {
-    this.users = new Map();
-    this.buildings = new Map();
-  }
+        this.users = new Map();
+        this.buildings = new Map();
+
+        // Force load buildings immediately
+        initialBuildingsData.forEach((buildingData) => {
+            const building: Building = {
+                ...buildingData,
+                isLit: false,
+                ownerName: null,
+                goal: null,
+            };
+            this.buildings.set(building.id, building);
+        });
+    }
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -124,4 +135,3 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
-storage.initializeBuildings();
