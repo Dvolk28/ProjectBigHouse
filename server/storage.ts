@@ -10,12 +10,13 @@ export interface IStorage {
   getBuilding(id: string): Promise<Building | undefined>;
   getUnlitBuildings(): Promise<Building[]>;
   illuminateBuilding(id: string, ownerName: string, goal: string): Promise<Building | undefined>;
+  resetLights(): Promise<void>;
   initializeBuildings(): Promise<void>;
 }
 
 const initialBuildingsData: Omit<Building, "isLit" | "ownerName" | "goal">[] = [
   { id: "b1", name: "Society Tower", height: 90, width: 28, style: "modern", zIndex: 1 },
-  { id: "b2", name: "Anthony J. Celebrezze Building", height: 130, width: 35, style: "fedReserve", zIndex: 2 },
+  { id: "b2", name: "Celebrezze Building", height: 130, width: 35, style: "fedReserve", zIndex: 2 },
   { id: "b3", name: "One Cleveland Center", height: 170, width: 40, style: "huntington", zIndex: 3 },
   { id: "b4", name: "Federal Reserve Bank", height: 120, width: 45, style: "fedReserve", zIndex: 2 },
   { id: "b5", name: "Huntington Building", height: 200, width: 42, style: "huntington", zIndex: 5 },
@@ -25,10 +26,20 @@ const initialBuildingsData: Omit<Building, "isLit" | "ownerName" | "goal">[] = [
   { id: "b9", name: "200 Public Square", height: 260, width: 52, style: "publicSquare", zIndex: 8 },
   { id: "b10", name: "Tower at Erieview", height: 220, width: 38, style: "erieview", zIndex: 7 },
   { id: "b11", name: "55 Public Square", height: 180, width: 44, style: "modern", zIndex: 4 },
-  { id: "b12", name: "Ernst & Young Tower", height: 150, width: 36, style: "modern", zIndex: 3 },
+  { id: "b12", name: "EY Tower", height: 150, width: 36, style: "modern", zIndex: 3 },
   { id: "b13", name: "Justice Center", height: 140, width: 50, style: "classic", zIndex: 2 },
   { id: "b14", name: "Ritz-Carlton", height: 110, width: 32, style: "classic", zIndex: 1 },
   { id: "b15", name: "Sherwin-Williams HQ", height: 100, width: 30, style: "modern", zIndex: 1 },
+  { id: "b16", name: "AECOM Building", height: 160, width: 38, style: "modern", zIndex: 4 },
+  { id: "b17", name: "Diamond Building", height: 140, width: 35, style: "classic", zIndex: 3 },
+  { id: "b18", name: "North Point Tower", height: 180, width: 42, style: "modern", zIndex: 5 },
+  { id: "b19", name: "Standard Building", height: 210, width: 40, style: "tower", zIndex: 6 },
+  { id: "b20", name: "Rhodes Tower", height: 190, width: 38, style: "modern", zIndex: 5 },
+  { id: "b21", name: "US Bank Centre", height: 150, width: 34, style: "modern", zIndex: 3 },
+  { id: "b22", name: "Penton Media Design Center", height: 130, width: 40, style: "classic", zIndex: 2 },
+  { id: "b23", name: "Ohio Bell Building", height: 170, width: 44, style: "tower", zIndex: 4 },
+  { id: "b24", name: "Hanna Building", height: 110, width: 36, style: "classic", zIndex: 2 },
+  { id: "b25", name: "Euclid Tower", height: 140, width: 32, style: "modern", zIndex: 1 },
 ];
 
 export class MemStorage implements IStorage {
@@ -84,6 +95,17 @@ export class MemStorage implements IStorage {
     
     this.buildings.set(id, updatedBuilding);
     return updatedBuilding;
+  }
+
+  async resetLights(): Promise<void> {
+    for (const [id, building] of this.buildings) {
+      this.buildings.set(id, {
+        ...building,
+        isLit: false,
+        ownerName: null,
+        goal: null,
+      });
+    }
   }
 
   async initializeBuildings(): Promise<void> {

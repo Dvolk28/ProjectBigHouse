@@ -9,6 +9,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { playIlluminateSound } from "@/lib/sounds";
 import { Building } from "@shared/schema";
 
+import { RefreshCcw } from "lucide-react";
+
 export default function Home() {
   const formRef = useRef<HTMLDivElement>(null);
   const skylineRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,27 @@ export default function Home() {
     },
     [illuminateMutation]
   );
+
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/reset");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/buildings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Skyline Reset",
+        description: "All lights have been extinguished.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reset Failed",
+        description: error.message || "Something went wrong.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const litCount = stats?.litCount ?? 0;
   const totalCount = stats?.totalCount ?? buildings.length;
@@ -147,13 +170,28 @@ export default function Home() {
         />
       </div>
 
-      <footer className="py-12 text-center">
-        <p className="text-white/30 text-sm">
-          Project Skyline – Cleveland
-        </p>
-        <p className="text-white/20 text-xs mt-2">
-          Every light tells a story of ambition and unity
-        </p>
+      <footer className="py-12 text-center flex flex-col items-center gap-4">
+        <button
+          onClick={() => {
+            if (confirm("Are you sure you want to reset all lights?")) {
+              resetMutation.mutate();
+            }
+          }}
+          disabled={resetMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all text-xs mb-4"
+          data-testid="button-reset-lights"
+        >
+          <RefreshCcw className={`h-3 w-3 ${resetMutation.isPending ? "animate-spin" : ""}`} />
+          Reset Skyline
+        </button>
+        <div>
+          <p className="text-white/30 text-sm">
+            Project Skyline – Cleveland
+          </p>
+          <p className="text-white/20 text-xs mt-2">
+            Every light tells a story of ambition and unity
+          </p>
+        </div>
       </footer>
     </div>
   );

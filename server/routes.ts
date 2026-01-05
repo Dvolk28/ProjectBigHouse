@@ -82,5 +82,16 @@ export async function registerRoutes(
     }
   });
 
+  // Reset all lights
+  app.post("/api/reset", async (_req, res) => {
+    try {
+      await storage.resetLights();
+      res.json({ message: "Skyline reset successfully" });
+    } catch (error) {
+      console.error("Error resetting skyline:", error);
+      res.status(500).json({ message: "Failed to reset skyline" });
+    }
+  });
+
   return httpServer;
 }
