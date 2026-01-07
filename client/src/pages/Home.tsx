@@ -87,10 +87,19 @@ export default function Home() {
     });
   }, [illuminateMutation]);
 
-  // Reset the skyline to dark
+ // Reset the skyline to dark
   const handleReset = () => {
     if (confirm("Are you sure you want to reset all lights?")) {
-      setBuildings(INITIAL_BUILDINGS);
+      // FORCE a fresh update: Map over the buildings and turn them all off explicitly
+      setBuildings(currentBuildings => 
+        currentBuildings.map(b => ({ 
+          ...b, 
+          isLit: false,       // Turn off the light
+          ownerName: undefined, // Clear the name
+          goal: undefined       // Clear the goal
+        }))
+      );
+
       toast({
         title: "Skyline Reset",
         description: "All lights have been extinguished.",
