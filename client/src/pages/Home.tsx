@@ -24,6 +24,8 @@ export default function Home() {
 
   // 2. STATE: This allows the buildings to change when you click the button
   const [buildings, setBuildings] = useState(INITIAL_BUILDINGS);
+  // NEW: This 'version' number forces the skyline to refresh completely on reset
+  const [skylineVersion, setSkylineVersion] = useState(0);
 
   // Calculate stats based on our local list
   const litCount = buildings.filter(b => b.isLit).length;
@@ -50,7 +52,7 @@ export default function Home() {
           newBuildings[unlitIndex] = { 
             ...newBuildings[unlitIndex], 
             isLit: true, 
-            ownerName: data.name, // These might show as errors if types are strict, but it will work
+            ownerName: data.name, 
             goal: data.goal 
           };
           litUpName = newBuildings[unlitIndex].name;
@@ -87,18 +89,21 @@ export default function Home() {
     });
   }, [illuminateMutation]);
 
- // Reset the skyline to dark
+  // Reset the skyline to dark
   const handleReset = () => {
     if (confirm("Are you sure you want to reset all lights?")) {
-      // FORCE a fresh update: Map over the buildings and turn them all off explicitly
+      // 1. Reset the data
       setBuildings(currentBuildings => 
         currentBuildings.map(b => ({ 
           ...b, 
-          isLit: false,       // Turn off the light
-          ownerName: undefined, // Clear the name
-          goal: undefined       // Clear the goal
+          isLit: false,       
+          ownerName: undefined, 
+          goal: undefined       
         }))
       );
+
+      // 2. FORCE REFRESH: Change the version number to force a redraw
+      setSkylineVersion(v => v + 1);
 
       toast({
         title: "Skyline Reset",
@@ -158,7 +163,8 @@ export default function Home() {
         </div>
 
         <div className="h-[350px] md:h-[450px]">
-          <Skyline buildings={buildingDataForSkyline} />
+          {/* NOTICE: key={skylineVersion} ensures the component rebuilds on reset */}
+          <Skyline key={skylineVersion} buildings={buildingDataForSkyline} />
         </div>
       </section>
 
