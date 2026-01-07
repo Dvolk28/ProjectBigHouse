@@ -10,15 +10,21 @@ import { playIlluminateSound } from "@/lib/sounds";
 import { Building } from "@shared/schema";
 
 import { RefreshCcw } from "lucide-react";
-
+const INITIAL_BUILDINGS = [
+  { id: 1, name: "Key Tower", style: "keyTower", height: 300, width: 60, isLit: true, x: 10 },
+  { id: 2, name: "Terminal Tower", style: "terminalTower", height: 250, width: 50, isLit: true, x: 30 },
+  { id: 3, name: "200 Public Square", style: "publicSquare", height: 220, width: 70, isLit: true, x: 50 },
+  { id: 4, name: "Tower City", style: "default", height: 180, width: 55, isLit: false, x: 70 },
+  { id: 5, name: "Fifth Third", style: "default", height: 160, width: 45, isLit: false, x: 90 },
+];
 export default function Home() {
   const formRef = useRef<HTMLDivElement>(null);
   const skylineRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const { data: buildings = [], isLoading: buildingsLoading } = useQuery<Building[]>({
-    queryKey: ["/api/buildings"],
-  });
+// IGNORE THE BACKEND FOR NOW, USE MANUAL LIST
+  const buildingsLoading = false; 
+  const buildings = INITIAL_BUILDINGS;
 
   const { data: stats } = useQuery<{ litCount: number; totalCount: number; availableCount: number }>({
     queryKey: ["/api/stats"],
