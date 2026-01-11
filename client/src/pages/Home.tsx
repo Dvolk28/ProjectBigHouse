@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -22,8 +22,8 @@ export default function Home() {
 
   // 1. Calculate 5,000 windows for the grid
   const totalWindows = 5000;
-  const windows = Array.from({ length: totalWindows }, (_, i) => i);
-
+  // (We keep this variable for stats, even if Skyline uses its own layout)
+  
   // 2. Fetch the existing lights from your new Neon database
   const { data: lights = [] } = useQuery<Light[]>({ 
     queryKey: ["/api/lights"] 
@@ -51,10 +51,11 @@ export default function Home() {
   const handleLightClick = (id: number) => {
     setActiveWindowId(id);
   };
-  const getLightForWindow = (wid: number) => lights.find((l) => l.windowId === wid);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-yellow-500/30">
+    // ROOT CONTAINER
+    <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-yellow-500/30 flex flex-col">
+      
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -70,71 +71,73 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="pt-32 pb-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white">
-              Light Your Mark
-            </h2>
-            <p className="text-neutral-400 max-w-lg mx-auto text-lg font-light">
-              Claim a window on the Cleveland skyline. 
-              <span className="block text-yellow-500 mt-2">
-                {lights.length} / {totalWindows.toLocaleString()} windows illuminated.
-              </span>
-            </p>
-          </div>
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-grow pt-32 pb-20 px-4 flex flex-col items-center">
+        
+        {/* TEXT SECTION */}
+        <div className="max-w-7xl w-full mx-auto text-center mb-12 space-y-4">
+          <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white">
+            Light Your Mark
+          </h2>
+          <p className="text-neutral-400 max-w-lg mx-auto text-lg font-light">
+            Claim a window on the Cleveland skyline. 
+            <span className="block text-yellow-500 mt-2">
+              {lights.length} / {totalWindows.toLocaleString()} windows illuminated.
+            </span>
+          </p>
+        </div>
 
-          {/* THE FORM (Only shows when you click a window) */}
-          {activeWindowId !== null && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-              <div className="bg-neutral-900 border border-white/10 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl">
-                <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId + 1}</h3>
-                
-                <div className="space-y-2">
-                  <label className="text-xs uppercase text-neutral-500">Your Name</label>
-                  <input 
-                    className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500"
-                    placeholder="Enter your name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                  />
-                </div>
+        {/* SKYLINE DISPLAY */}
+        <div className="w-full max-w-[1200px] mx-auto relative z-10">
+           <Skyline lights={lights || []} onLightClick={handleLightClick} />
+        </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs uppercase text-neutral-500">Your Ambition</label>
-                  <textarea 
-                    className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
-                    placeholder="What is your dream?"
-                    value={message}
-                    onChange={e => setMessage(e.target.value)}
-                  />
-                </div>
+        {/* POPUP FORM (Only shows when you click a window) */}
+        {activeWindowId !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-neutral-900 border border-white/10 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in duration-300">
+              <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId}</h3>
+              
+              <div className="space-y-2">
+                <label className="text-xs uppercase text-neutral-500">Your Name</label>
+                <input 
+                  className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
+              </div>
 
-                <div className="flex gap-2 pt-2">
-                  <button 
-                    onClick={() => setActiveWindowId(null)}
-                    className="flex-1 py-2 rounded border border-white/10 text-neutral-400 hover:bg-white/5"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={() => mutation.mutate({ windowId: activeWindowId, name, message, color: "yellow" })}
-                    disabled={mutation.isPending || !name}
-                    className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50"
-                  >
-                    {mutation.isPending ? "Saving..." : "Illuminate"}
-                  </button>
-                </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase text-neutral-500">Your Ambition</label>
+                <textarea 
+                  className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
+                  placeholder="What is your dream?"
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button 
+                  onClick={() => setActiveWindowId(null)}
+                  className="flex-1 py-2 rounded border border-white/10 text-neutral-400 hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => mutation.mutate({ windowId: activeWindowId, name, message, color: "yellow" })}
+                  disabled={mutation.isPending || !name}
+                  className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50 transition-colors"
+                >
+                  {mutation.isPending ? "Saving..." : "Illuminate"}
+                </button>
               </div>
             </div>
-          )}
-{/* SKYLINE SECTION */}
-      <div className="relative z-10 w-full">
-         <Skyline lights={lights || []} onLightClick={handleLightClick} />
-      </div>
+          </div>
+        )}
 
-    </main> // Closes the main container div
-  ); // Closes the return (...)
-} // Closes the Home function
+      </main> 
+    </div> // This closes the root container (was missing before)
+  );
+}
