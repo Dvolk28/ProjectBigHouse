@@ -17,27 +17,25 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const buildings = pgTable("buildings", {
-  id: varchar("id", { length: 50 }).primaryKey(),
+export const illuminations = pgTable("illuminations", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  windowId: integer("window_id").notNull(), // The unique number for each window (0-4999)
   name: text("name").notNull(),
-  height: integer("height").notNull(),
-  width: integer("width").notNull(),
-  style: text("style").notNull().default("modern"),
-  zIndex: integer("z_index").notNull().default(1),
-  isLit: boolean("is_lit").notNull().default(false),
-  ownerName: text("owner_name"),
-  goal: text("goal"),
+  goal: text("goal").notNull(),
+  timestamp: text("timestamp").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const insertBuildingSchema = createInsertSchema(buildings).omit({
-  id: true,
+export const insertIlluminationSchema = createInsertSchema(illuminations).omit({ 
+  id: true, 
+  timestamp: true 
 });
 
+export type Illumination = typeof illuminations.$inferSelect;
+export type InsertIllumination = z.infer<typeof insertIlluminationSchema>;
+
+// This keeps your form validation working
 export const illuminateBuildingSchema = z.object({
   name: z.string().min(2).max(50),
   goal: z.string().min(10).max(200),
 });
-
-export type InsertBuilding = z.infer<typeof insertBuildingSchema>;
-export type Building = typeof buildings.$inferSelect;
 export type IlluminateBuilding = z.infer<typeof illuminateBuildingSchema>;
