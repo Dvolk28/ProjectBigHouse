@@ -1,198 +1,155 @@
-import { useRef, useCallback, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import HeroSection from "@/components/HeroSection";
-import Skyline from "@/components/Skyline";
-import LightForm from "@/components/LightForm";
-import { BuildingData } from "@/components/Building";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { playIlluminateSound } from "@/lib/sounds";
-import { RefreshCcw } from "lucide-react";
 
-// 1. SETUP: The default list of buildings (All lights set to FALSE)
-const INITIAL_BUILDINGS = [
-  { id: 1, name: "Key Tower", style: "keyTower", height: 300, width: 60, isLit: false, x: 10 },
-  { id: 2, name: "Terminal Tower", style: "terminalTower", height: 250, width: 50, isLit: false, x: 30 },
-  { id: 3, name: "200 Public Square", style: "publicSquare", height: 220, width: 70, isLit: false, x: 50 },
-  { id: 4, name: "Tower City", style: "default", height: 180, width: 55, isLit: false, x: 70 },
-  { id: 5, name: "Fifth Third", style: "default", height: 160, width: 45, isLit: false, x: 90 },
-];
+// This defines what a "Light" looks like in your database
+type Light = {
+  id: number;
+  windowId: number;
+  name: string;
+  message: string;
+  color: string;
+};
 
 export default function Home() {
-  const formRef = useRef<HTMLDivElement>(null);
-  const skylineRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [activeWindowId, setActiveWindowId] = useState<number | null>(null);
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
 
-  // 2. STATE: This allows the buildings to change when you click the button
-  const [buildings, setBuildings] = useState(INITIAL_BUILDINGS);
-  // NEW: This 'version' number forces the skyline to refresh completely on reset
-  const [skylineVersion, setSkylineVersion] = useState(0);
+  // 1. Calculate 5,000 windows for the grid
+  const totalWindows = 5000;
+  const windows = Array.from({ length: totalWindows }, (_, i) => i);
 
-  // Calculate stats based on our local list
-  const litCount = buildings.filter(b => b.isLit).length;
-  const totalCount = buildings.length;
-  const availableBuildings = totalCount - litCount;
-
-  // 3. ACTION: This runs when you submit the form
-  const illuminateMutation = useMutation({
-    mutationFn: async (data: { name: string; goal: string }) => {
-      // Simulate a short network delay so it feels real
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return data;
-    },
-    onSuccess: (data) => {
-      // Find the first unlit building and light it up!
-      let litUpName = "";
-      
-      setBuildings(prevBuildings => {
-        const newBuildings = [...prevBuildings];
-        const unlitIndex = newBuildings.findIndex(b => !b.isLit);
-        
-        if (unlitIndex !== -1) {
-          // Update the specific building with the user's data
-          newBuildings[unlitIndex] = { 
-            ...newBuildings[unlitIndex], 
-            isLit: true, 
-            ownerName: data.name, 
-            goal: data.goal 
-          };
-          litUpName = newBuildings[unlitIndex].name;
-        }
-        return newBuildings;
-      });
-
-      playIlluminateSound();
-      
-      toast({
-        title: "Your light shines bright!",
-        description: `You've illuminated ${litUpName || "a building"} on the Cleveland skyline.`,
-      });
-
-      setTimeout(() => {
-        scrollToSkyline();
-      }, 300);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Unable to illuminate",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    },
+  // 2. Fetch the existing lights from your new Neon database
+  const { data: lights = [] } = useQuery<Light[]>({ 
+    queryKey: ["/api/lights"] 
   });
 
-  const handleFormSubmit = useCallback(async (data: { name: string; goal: string }): Promise<boolean> => {
-    return new Promise((resolve) => {
-      illuminateMutation.mutate(data, {
-        onSuccess: () => resolve(true),
-        onError: () => resolve(false),
-      });
-    });
-  }, [illuminateMutation]);
-
-  // Reset the skyline to dark
-  const handleReset = () => {
-    if (confirm("Are you sure you want to reset all lights?")) {
-      // 1. Reset the data
-      setBuildings(currentBuildings => 
-        currentBuildings.map(b => ({ 
-          ...b, 
-          isLit: false,       
-          ownerName: undefined, 
-          goal: undefined       
-        }))
-      );
-
-      // 2. FORCE REFRESH: Change the version number to force a redraw
-      setSkylineVersion(v => v + 1);
-
-      toast({
-        title: "Skyline Reset",
-        description: "All lights have been extinguished.",
-      });
+  // 3. Setup the "Save" function
+  const mutation = useMutation({
+    mutationFn: async (newLight: any) => {
+      const res = await apiRequest("POST", "/api/lights", newLight);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lights"] });
+      toast({ title: "Success!", description: "You have lit up a window!" });
+      setName("");
+      setMessage("");
+      setActiveWindowId(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not save your light yet.", variant: "destructive" });
     }
-  };
+  });
 
-  const scrollToForm = useCallback(() => {
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
-
-  const scrollToSkyline = useCallback(() => {
-    skylineRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
-
-  // Prepare data for the Skyline component
-  const buildingDataForSkyline: BuildingData[] = buildings.map((b) => ({
-    id: b.id,
-    name: b.name,
-    height: b.height,
-    width: b.width,
-    isLit: b.isLit,
-    ownerName: (b as any).ownerName,
-    goal: (b as any).goal,
-    style: b.style as BuildingData["style"],
-    zIndex: (b as any).zIndex,
-  }));
+  // Helper to check if a window is already lit
+  const getLightForWindow = (wid: number) => lights.find((l) => l.windowId === wid);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background: "linear-gradient(to bottom, #070b14 0%, #0a0f1a 50%, #070b14 100%)",
-      }}
-    >
-      <HeroSection
-        onAddLightClick={scrollToForm}
-        litCount={litCount}
-        totalCount={totalCount}
-      />
-
-      <section
-        ref={skylineRef}
-        className="relative py-8 md:py-16"
-        style={{
-          background: "linear-gradient(to bottom, transparent, rgba(169, 112, 255, 0.03), transparent)",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-center text-2xl md:text-3xl font-semibold text-white/90 mb-2">
-            Cleveland Skyline
-          </h2>
-          <p className="text-center text-white/50 text-sm mb-8">
-            Hover over illuminated buildings to see the dreams they represent
-          </p>
+    <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-yellow-500/30">
+      {/* HEADER */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-md">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+            <h1 className="text-sm font-medium tracking-widest uppercase text-neutral-400">
+              Project Skyline
+            </h1>
+          </div>
+          <div className="text-xs text-neutral-600 font-mono">
+            CLE • 41.4993° N, 81.6944° W
+          </div>
         </div>
+      </header>
 
-        <div className="h-[350px] md:h-[450px]">
-          {/* NOTICE: key={skylineVersion} ensures the component rebuilds on reset */}
-          <Skyline key={skylineVersion} buildings={buildingDataForSkyline} />
+      {/* MAIN CONTENT */}
+      <main className="pt-32 pb-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white">
+              Light Your Mark
+            </h2>
+            <p className="text-neutral-400 max-w-lg mx-auto text-lg font-light">
+              Claim a window on the Cleveland skyline. 
+              <span className="block text-yellow-500 mt-2">
+                {lights.length} / {totalWindows.toLocaleString()} windows illuminated.
+              </span>
+            </p>
+          </div>
+
+          {/* THE FORM (Only shows when you click a window) */}
+          {activeWindowId !== null && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-neutral-900 border border-white/10 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl">
+                <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId + 1}</h3>
+                
+                <div className="space-y-2">
+                  <label className="text-xs uppercase text-neutral-500">Your Name</label>
+                  <input 
+                    className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase text-neutral-500">Your Ambition</label>
+                  <textarea 
+                    className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
+                    placeholder="What is your dream?"
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    onClick={() => setActiveWindowId(null)}
+                    className="flex-1 py-2 rounded border border-white/10 text-neutral-400 hover:bg-white/5"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => mutation.mutate({ windowId: activeWindowId, name, message, color: "yellow" })}
+                    disabled={mutation.isPending || !name}
+                    className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50"
+                  >
+                    {mutation.isPending ? "Saving..." : "Illuminate"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* THE GRID (5,000 Windows) */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(12px,1fr))] gap-[2px] md:gap-[3px] p-4 bg-neutral-900/30 rounded-lg border border-white/5">
+            {windows.map((i) => {
+              const isLit = getLightForWindow(i);
+              return (
+                <button
+                  key={i}
+                  onClick={() => !isLit && setActiveWindowId(i)}
+                  disabled={!!isLit}
+                  className={`
+                    aspect-square rounded-[1px] transition-all duration-700
+                    ${isLit 
+                      ? "bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)] z-10" 
+                      : "bg-neutral-800/50 hover:bg-neutral-700 cursor-pointer"}
+                  `}
+                  title={isLit ? `${isLit.name}: ${isLit.message}` : `Window #${i + 1}`}
+                />
+              );
+            })}
+          </div>
+
         </div>
-      </section>
-
-      <div ref={formRef}>
-        <LightForm
-          onSubmit={handleFormSubmit}
-          isSubmitting={illuminateMutation.isPending}
-          availableBuildings={availableBuildings}
-        />
-      </div>
-
-      <footer className="py-12 text-center flex flex-col items-center gap-4">
-        <button
-          onClick={handleReset}
-          className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/5 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all text-xs mb-4"
-        >
-          <RefreshCcw className="h-3 w-3" />
-          Reset Skyline
-        </button>
-        <div>
-          <p className="text-white/30 text-sm">
-            Project Skyline – Cleveland
-          </p>
-          <p className="text-white/20 text-xs mt-2">
-            Every light tells a story of ambition and unity
-          </p>
-        </div>
-      </footer>
+      </main>
     </div>
   );
 }
