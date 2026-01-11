@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Skyline } from "@/components/Skyline";
 
 // This defines what a "Light" looks like in your database
 type Light = {
@@ -126,27 +127,8 @@ export default function Home() {
               </div>
             </div>
           )}
-
-          {/* THE GRID (5,000 Windows) */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(12px,1fr))] gap-[2px] md:gap-[3px] p-4 bg-neutral-900/30 rounded-lg border border-white/5">
-            {windows.map((i) => {
-              const isLit = getLightForWindow(i);
-              return (
-                <button
-                  key={i}
-                  onClick={() => !isLit && setActiveWindowId(i)}
-                  disabled={!!isLit}
-                  className={`
-                    aspect-square rounded-[1px] transition-all duration-700
-                    ${isLit 
-                      ? "bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)] z-10" 
-                      : "bg-neutral-800/50 hover:bg-neutral-700 cursor-pointer"}
-                  `}
-                  title={isLit ? `${isLit.name}: ${isLit.message}` : `Window #${i + 1}`}
-                />
-              );
-            })}
-          </div>
+<Skyline lights={lights || []} onLightClick={handleLightClick} />
+   
 
         </div>
       </main>
