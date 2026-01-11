@@ -130,10 +130,10 @@ export default function Home() {
               </div>
             </div>
           )}
-<Skyline lights={lights || []} onLightClick={handleLightClick} />
-   
-
-        </div>
+{/* MAIN CONTENT */}
+<div className="relative z-10 w-full">
+    <Skyline lights={lights || []} onLightClick={handleLightClick} />
+</div>
       </main>
     </div>
   );
