@@ -48,6 +48,9 @@ export default function Home() {
   });
 
   // Helper to check if a window is already lit
+  const handleLightClick = (id: number) => {
+    setActiveWindowId(id);
+  };
   const getLightForWindow = (wid: number) => lights.find((l) => l.windowId === wid);
 
   return (
