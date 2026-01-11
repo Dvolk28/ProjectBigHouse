@@ -1,47 +1,115 @@
 import { useState } from "react";
 
-const CLEVELAND_BUILDINGS = [
-  // Terminal Tower: Tiered spire
-  { name: "Terminal Tower", type: "spire", height: "h-80", width: "w-24", windowRows: 8, windowCols: 3 },
-  // The 9: Modern glass
-  { name: "The 9", type: "flat", height: "h-52", width: "w-16", windowRows: 12, windowCols: 2 },
-  // Key Tower: The big pyramid
-  { name: "Key Tower", type: "pyramid", height: "h-96", width: "w-28", windowRows: 14, windowCols: 4 },
-  // 200 Public Sq: Angled roof
-  { name: "200 Public Sq", type: "angled", height: "h-72", width: "w-24", windowRows: 10, windowCols: 3 },
-  // Generic fillers for density
-  { name: "Ernst & Young", type: "flat", height: "h-48", width: "w-20", windowRows: 8, windowCols: 3 },
-  { name: "PNC Center", type: "flat", height: "h-60", width: "w-20", windowRows: 10, windowCols: 3 },
+// Building definitions using SVG polygon points for exact shapes.
+// "w" is width in pixels (relative), "h" is height in pixels.
+const BUILDINGS = [
+  // 1. ERNST & YOUNG TOWER (Flats East Bank)
+  // Modern, flat top, glass facade
+  { 
+    name: "Ernst & Young Tower", 
+    type: "block", 
+    w: 70, 
+    h: 280, 
+    windows: 100 
+  },
+
+  // 2. CARL B. STOKES (Federal Courthouse)
+  // Iconic curved/swooped top
+  { 
+    name: "Carl B. Stokes Building", 
+    type: "curved-top", 
+    w: 80, 
+    h: 320, 
+    windows: 140 
+  },
+
+  // 3. TERMINAL TOWER (The Tiered Spire)
+  // The classic centerpiece
+  { 
+    name: "Terminal Tower", 
+    type: "terminal", 
+    w: 100, 
+    h: 520, 
+    windows: 450 
+  },
+
+  // 4. KEY TOWER (The Pyramid)
+  // The tallest point
+  { 
+    name: "Key Tower", 
+    type: "pyramid", 
+    w: 120, 
+    h: 600, 
+    windows: 600 
+  },
+
+  // 5. 200 PUBLIC SQUARE (BP Building)
+  // distinct angled roof
+  { 
+    name: "200 Public Sq", 
+    type: "slope-right", 
+    w: 110, 
+    h: 450, 
+    windows: 350 
+  },
+
+  // 6. ONE CLEVELAND CENTER (The Silver Chisel)
+  // "Chisel" shape, slanted top
+  { 
+    name: "One Cleveland Center", 
+    type: "chisel", 
+    w: 70, 
+    h: 380, 
+    windows: 150 
+  },
+
+  // 7. SHERWIN WILLIAMS HQ (The New V-Shape)
+  // The new addition to the skyline
+  { 
+    name: "Sherwin Williams HQ", 
+    type: "v-top", 
+    w: 90, 
+    h: 480, 
+    windows: 300 
+  },
+  
+  // 8. THE 9 (Ameritrust)
+  // Modern glass block on the right side
+  { 
+    name: "The 9", 
+    type: "block", 
+    w: 60, 
+    h: 220, 
+    windows: 80 
+  },
 ];
 
 export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick: (id: number) => void }) {
   const [hoveredLight, setHoveredLight] = useState<any | null>(null);
 
-  // Helper to find if a window is lit
   const getLight = (id: number) => lights.find((l) => l.windowId === id);
 
   let globalWindowCount = 0;
 
   return (
-    // CONTAINER: Transparent background (blends into the Home page dark purple)
-    <div className="relative w-full h-[600px] flex items-end justify-center gap-4 px-4 overflow-hidden">
+    <div className="relative w-full max-w-[1600px] h-full flex items-end justify-center px-4 gap-2 lg:gap-3 overflow-x-auto">
       
-      {/* HOVER TOOLTIP */}
+      {/* TOOLTIP */}
       {hoveredLight && (
-        <div className="absolute top-10 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none animate-in fade-in zoom-in duration-200">
-          <div className="bg-black/90 backdrop-blur-md border border-purple-500/50 p-4 rounded-xl shadow-[0_0_30px_rgba(168,85,247,0.4)] text-center min-w-[200px]">
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none animate-in fade-in zoom-in duration-200">
+          <div className="bg-neutral-900/90 backdrop-blur-md border border-yellow-500/50 p-4 rounded-xl shadow-[0_0_30px_rgba(234,179,8,0.3)] text-center min-w-[200px]">
             <h3 className="text-lg font-bold text-white mb-1">{hoveredLight.name}</h3>
-            <p className="text-purple-300 italic text-sm">"{hoveredLight.message}"</p>
+            <p className="text-yellow-200 italic text-sm">"{hoveredLight.message}"</p>
           </div>
         </div>
       )}
 
-      {/* RENDER BUILDINGS */}
-      {CLEVELAND_BUILDINGS.map((building, bIndex) => {
+      {BUILDINGS.map((b, i) => {
         const windows = [];
-        const totalWindows = building.windowRows * building.windowCols;
+        const cols = Math.floor(b.w / 10); // Tighter grid for realism
+        const rows = Math.ceil(b.windows / cols);
 
-        for (let i = 0; i < totalWindows; i++) {
+        for (let w = 0; w < b.windows; w++) {
           globalWindowCount++;
           const currentId = globalWindowCount;
           const lightData = getLight(currentId);
@@ -54,58 +122,80 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
               onMouseEnter={() => isLit && setHoveredLight(lightData)}
               onMouseLeave={() => setHoveredLight(null)}
               className={`
-                w-full h-full rounded-[1px] cursor-pointer transition-all duration-300
+                rounded-[1px] cursor-pointer transition-all duration-300
                 ${isLit 
-                  ? "bg-yellow-300 shadow-[0_0_15px_rgba(253,224,71,0.6)] z-10 scale-105" 
-                  : "bg-white/5 hover:bg-white/10 border border-white/5"}
+                  ? "bg-yellow-400 shadow-[0_0_8px_rgba(253,224,71,0.8)] z-10" 
+                  : "bg-white/5 hover:bg-white/20"}
               `}
+              style={{ width: "100%", height: "100%" }}
             />
           );
         }
 
         return (
-          <div key={bIndex} className={`flex flex-col items-center justify-end group ${building.width}`}>
+          <div key={i} className="relative flex flex-col justify-end group shrink-0" style={{ width: b.w, height: b.h }}>
             
-            {/* --- ROOF TOPPERS (The Cleveland Look) --- */}
-            
-            {/* Terminal Tower Spire */}
-            {building.type === "spire" && (
-              <div className="flex flex-col items-center relative top-1">
-                <div className="w-1 h-16 bg-slate-800/80"></div>
-                <div className="w-6 h-6 bg-slate-800/80 rounded-t-sm border-t border-white/10"></div>
-                <div className="w-16 h-8 bg-slate-800/80 rounded-t-md border-t border-white/10"></div>
-              </div>
-            )}
+            {/* SVG BACKGROUND LAYER */}
+            <div className="absolute inset-0 z-0 text-slate-900/90 drop-shadow-2xl">
+              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+                {/* Standard Block */}
+                {b.type === "block" && <rect x="0" y="5" width="100" height="95" fill="currentColor" />}
+                
+                {/* Key Tower */}
+                {b.type === "pyramid" && <path d="M50,0 L100,12 L100,100 L0,100 L0,12 Z" fill="currentColor" />}
+                
+                {/* 200 Public Sq */}
+                {b.type === "slope-right" && <path d="M0,8 L100,0 L100,100 L0,100 Z" fill="currentColor" />}
+                
+                {/* One Cleveland Center */}
+                {b.type === "chisel" && <path d="M0,0 L80,5 L100,20 L100,100 L0,100 Z" fill="currentColor" />}
 
-            {/* Key Tower Pyramid */}
-            {building.type === "pyramid" && (
-               // CSS Triangle for the pyramid
-               <div className="w-0 h-0 border-l-[35px] border-r-[35px] border-b-[50px] border-l-transparent border-r-transparent border-b-slate-800/90 relative top-1 drop-shadow-2xl"></div>
-            )}
+                {/* Carl B Stokes (Curved Top approximated) */}
+                {b.type === "curved-top" && <path d="M0,10 Q50,0 100,10 L100,100 L0,100 Z" fill="currentColor" />}
 
-            {/* 200 Public Sq Angled Roof */}
-            {building.type === "angled" && (
-               <div className="w-full h-8 bg-slate-800/90 transform skew-y-6 border-t border-white/10 mb-[-5px] relative top-1"></div>
-            )}
+                {/* Terminal Tower (Tiered) */}
+                {b.type === "terminal" && (
+                  <path d="M45,0 L55,0 L55,8 L70,8 L70,20 L85,20 L85,100 L15,100 L15,20 L30,20 L30,8 L45,8 Z" fill="currentColor" />
+                )}
 
-            {/* --- BUILDING BODY --- */}
-            <div 
-              className={`
-                w-full ${building.height} bg-slate-900/90 backdrop-blur-sm border-x border-t border-white/10 relative p-2 shadow-2xl
-                grid gap-1
-              `}
-              style={{
-                gridTemplateColumns: `repeat(${building.windowCols}, 1fr)`,
-                gridTemplateRows: `repeat(${building.windowRows}, 1fr)`,
-                boxShadow: "0 0 50px rgba(0,0,0,0.5)" 
-              }}
+                 {/* Sherwin Williams (V-Cut) */}
+                {b.type === "v-top" && (
+                   <path d="M0,0 L50,10 L100,0 L100,100 L0,100 Z" fill="currentColor" />
+                )}
+              </svg>
+              
+              {/* Border Overlay for definition */}
+              <div className="absolute inset-0 border-x border-t border-white/20 opacity-50" 
+                   style={{ clipPath: getClipPath(b.type) }}></div>
+            </div>
+
+            {/* WINDOW GRID */}
+            <div className="relative z-10 grid gap-[2px] p-2"
+                 style={{
+                   gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                   height: b.type === "block" ? "95%" : "85%", // Adjust for roof height
+                   marginTop: "auto"
+                 }}
             >
-              {/* Windows Grid */}
               {windows}
             </div>
+
           </div>
         );
       })}
     </div>
   );
+}
+
+// Clip paths for the CSS borders to match the SVG shapes
+function getClipPath(type: string) {
+  switch(type) {
+    case 'pyramid': return 'polygon(50% 0%, 100% 12%, 100% 100%, 0% 100%, 0% 12%)';
+    case 'slope-right': return 'polygon(0% 8%, 100% 0%, 100% 100%, 0% 100%)';
+    case 'chisel': return 'polygon(0% 0%, 80% 5%, 100% 20%, 100% 100%, 0% 100%)';
+    case 'curved-top': return 'polygon(0% 10%, 50% 0%, 100% 10%, 100% 100%, 0% 100%)'; // Approx for CSS
+    case 'terminal': return 'polygon(45% 0%, 55% 0%, 55% 8%, 70% 8%, 70% 20%, 85% 20%, 85% 100%, 15% 100%, 15% 20%, 30% 20%, 30% 8%, 45% 8%)';
+    case 'v-top': return 'polygon(0% 0%, 50% 10%, 100% 0%, 100% 100%, 0% 100%)';
+    default: return 'none';
+  }
 }
