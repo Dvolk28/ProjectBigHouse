@@ -135,6 +135,6 @@ export default function Home() {
          <Skyline lights={lights || []} onLightClick={handleLightClick} />
       </div>
 
-    </div> // Closes the main container div
+    </main> // Closes the main container div
   ); // Closes the return (...)
 } // Closes the Home function
