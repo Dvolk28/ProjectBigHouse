@@ -14,7 +14,7 @@ const BUILDINGS = [
   // Main Skyline
   { name: "Ernst & Young", type: "slope-right", w: 75, h: 320 },
   { name: "Carl B. Stokes", type: "curve", w: 90, h: 350 },
-  { name: "Terminal Tower", type: "spire", w: 110, h: 580 }, // The one with the spill issue
+  { name: "Terminal Tower", type: "spire", w: 110, h: 580 }, // The problem child
   { name: "Key Tower", type: "pyramid", w: 140, h: 680 },
   { name: "200 Public Sq", type: "slope-cut", w: 110, h: 500 },
   { name: "One Cleveland Ctr", type: "chisel", w: 80, h: 420 },
@@ -46,7 +46,7 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
       )}
 
       {BUILDINGS.map((b, i) => {
-        // Simple Grid Logic
+        // 1. GRID MATH: How many windows fit?
         const cols = Math.floor((b.w - GAP) / (WINDOW_W + GAP));
         const rows = Math.floor((b.h - GAP) / (WINDOW_H + GAP));
         
@@ -55,40 +55,8 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
             
-            // --- THE FIX: Simple bounds checks to stop spilling ---
-            let visible = true;
-            const rowPct = r / rows; // 0 = top, 1 = bottom
-            const colPct = c / cols; // 0 = left, 1 = right
-
-            if (b.type === 'spire') {
-              // Terminal Tower Fix: 
-              // If we are in the top 30%, only allow the middle ~30% of columns
-              if (rowPct < 0.3) {
-                 if (colPct < 0.35 || colPct > 0.65) visible = false;
-              }
-            }
-            else if (b.type === 'pyramid') {
-              // Key Tower: Simple triangle clip
-              // As we go up (rowPct gets smaller), valid width gets narrower
-              // rowPct 0.2 (top tip) -> allow very narrow
-              const centerDist = Math.abs(colPct - 0.5);
-              const allowedWidth = rowPct * 0.8; // Simple slope factor
-              if (centerDist > allowedWidth + 0.1) visible = false;
-            }
-            else if (b.type === 'slope-right') {
-              // High Left, Low Right (or vice versa, adjusting to keep inside)
-              if (rowPct < 0.2 && colPct > 0.5) visible = false; 
-            }
-             else if (b.type === 'slope-left') {
-              if (rowPct < 0.2 && colPct < 0.5) visible = false; 
-            }
-            else if (b.type === 'chisel') {
-              if (rowPct < 0.15 && colPct > 0.6) visible = false;
-            }
-            
-            // -----------------------------------------------------
-
-            if (visible) {
+            // 2. SPILL GUARD: Prevent windows from floating outside
+            if (shouldRenderWindow(b.type, r, c, rows, cols)) {
               globalWindowCount++;
               const currentId = globalWindowCount;
               const lightData = getLight(currentId);
@@ -100,7 +68,7 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
                   className="absolute"
                   style={{
                     left: c * (WINDOW_W + GAP) + GAP,
-                    top: r * (WINDOW_H + GAP) + GAP,
+                    top: r * (WINDOW_H + GAP) + GAP + 2, // +2 nudges them down just enough to not clip the very tip
                     width: WINDOW_W,
                     height: WINDOW_H,
                   }}
@@ -123,21 +91,21 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
         }
 
         return (
-          <div 
-            key={i} 
-            className="relative flex flex-col justify-end group shrink-0" 
-            style={{ width: b.w, height: b.h }}
-          >
-            {/* Building Shape (CSS Background) */}
-            <div 
-                className={`absolute inset-0 z-0 bg-slate-800/80 backdrop-blur-sm border border-white/10 shadow-2xl transition-all duration-500
-                ${getShapeClass(b.type)}`} 
-            />
+          <div key={i} className="relative flex flex-col justify-end group shrink-0" style={{ width: b.w, height: b.h }}>
             
-            {/* Windows Container */}
+            {/* BACKGROUND SHAPE (SVG) - Keeps it looking like Cleveland */}
+            <div className="absolute inset-0 z-0 text-slate-800 drop-shadow-2xl">
+               <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <path d={getSvgPath(b.type)} fill="currentColor" />
+               </svg>
+               <div className="absolute inset-0 border-x border-white/5 opacity-40 pointer-events-none" />
+            </div>
+
+            {/* WINDOWS */}
             <div className="relative z-10 w-full h-full">
               {windows}
             </div>
+
           </div>
         );
       })}
@@ -145,17 +113,88 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
   );
 }
 
-// Simple CSS shapes (Clip-paths) to match the logic
-function getShapeClass(type: string) {
+// --- LOGIC: KEEPS WINDOWS INSIDE ---
+// Returns TRUE if the window is safe to render.
+function shouldRenderWindow(type: string, r: number, c: number, rows: number, cols: number) {
+  const rowPct = r / rows; // 0.0 (top) -> 1.0 (bottom)
+  const colPct = c / cols; // 0.0 (left) -> 1.0 (right)
+
+  // Always hide the very first row (r=0) on pointy buildings to prevent "floating point" windows
+  if (r === 0 && ['spire', 'pyramid', 'slope-cut'].includes(type)) return false;
+
   switch (type) {
-    case 'pyramid': return 'clip-path-polygon-[50%_0,_100%_100%,_0_100%]'; // Triangle
-    case 'spire': return 'clip-path-polygon-[50%_0,_60%_15%,_60%_30%,_100%_30%,_100%_100%,_0_100%,_0_30%,_40%_30%,_40%_15%]'; // Terminal Tower Shape
-    case 'slope-right': return 'clip-path-polygon-[0_0,_100%_15%,_100%_100%,_0_100%]';
-    case 'slope-left': return 'clip-path-polygon-[0_15%,_100%_0,_100%_100%,_0_100%]';
-    case 'slope-cut': return 'clip-path-polygon-[20%_0,_100%_20%,_100%_100%,_0_100%]';
-    case 'chisel': return 'clip-path-polygon-[0_0,_60%_5%,_100%_25%,_100%_100%,_0_100%]';
-    case 'curve': return 'rounded-t-[40px]';
-    case 'notch': return 'clip-path-polygon-[0_0,_70%_0,_70%_10%,_100%_10%,_100%_100%,_0_100%]';
-    default: return 'rounded-t-md';
+    case 'spire': // TERMINAL TOWER
+      // The Spire is thin at the top (0-30%), then gets wider.
+      if (rowPct < 0.3) {
+        // Top 30%: Only allow the middle 25% of columns
+        return colPct > 0.37 && colPct < 0.63;
+      }
+      return true; // The base is full width
+
+    case 'pyramid': // KEY TOWER
+      // Triangle shape.
+      // Top 15% is just the antenna/tip, no windows.
+      if (rowPct < 0.15) return false;
+      
+      // As we go down (rowPct increases), the allowed width increases.
+      // Logic: distance from center (0.5) must be less than current width/2
+      const distFromCenter = Math.abs(colPct - 0.5);
+      const safeWidth = rowPct * 0.65; // Multiplier controls steepness
+      return distFromCenter < safeWidth;
+
+    case 'slope-right':
+      // Cut top-left corner? Or Top-Right?
+      // "Slope Right" usually means high-left, low-right.
+      // Reject if Top-Right corner (small row, large col)
+      // Visual: [\]
+      if (rowPct < 0.2 && colPct > 0.5) return false;
+      return true;
+
+    case 'slope-left':
+      // Visual: [/]
+      // Reject if Top-Left corner (small row, small col)
+      if (rowPct < 0.2 && colPct < 0.5) return false;
+      return true;
+
+    case 'slope-cut': // 200 Public Sq
+      // Angled roof, cuts one corner.
+      if (rowPct < 0.15 && colPct > 0.6) return false;
+      return true;
+
+    case 'chisel':
+      // One Cleveland Center: Steep cut top right
+      if (rowPct < 0.2 && colPct > 0.6) return false;
+      return true;
+      
+    case 'notch':
+      // Sherwin: Notch out top right
+      if (rowPct < 0.1 && colPct > 0.65) return false;
+      return true;
+    
+    case 'curve':
+        // Stokes: Dome top.
+        // If at the very top (first 15%), only allow middle windows
+        if (rowPct < 0.15) {
+            return colPct > 0.3 && colPct < 0.7;
+        }
+        return true;
+
+    default:
+      return true;
+  }
+}
+
+// --- VISUALS: SHAPES ---
+function getSvgPath(type: string) {
+  switch (type) {
+    case 'pyramid': return 'M50,0 L100,20 L100,100 L0,100 L0,20 Z'; 
+    case 'spire': return 'M50,0 L60,10 L60,25 L80,25 L80,100 L20,100 L20,25 L40,25 L40,10 Z'; // Custom Terminal Tower shape
+    case 'slope-cut': return 'M0,0 L100,20 L100,100 L0,100 Z';
+    case 'slope-right': return 'M0,0 L100,15 L100,100 L0,100 Z';
+    case 'slope-left': return 'M0,15 L100,0 L100,100 L0,100 Z';
+    case 'curve': return 'M0,20 Q50,-10 100,20 L100,100 L0,100 Z';
+    case 'chisel': return 'M0,0 L60,5 L80,20 L100,20 L100,100 L0,100 Z';
+    case 'notch': return 'M0,0 L65,0 L65,12 L100,12 L100,100 L0,100 Z';
+    default: return 'M0,0 L100,0 L100,100 L0,100 Z';
   }
 }
