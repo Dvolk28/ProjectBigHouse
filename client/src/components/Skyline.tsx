@@ -126,4 +126,12 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
                    alignContent: "end", // Ensures windows stack from bottom up
                  }}
             >
-              {windows
+              {windows}
+            </div>
+
+          </div>
+        );
+      })}
+    </div>
+  );
+}
