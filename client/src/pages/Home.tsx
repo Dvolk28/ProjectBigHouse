@@ -5,7 +5,6 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skyline } from "@/components/Skyline";
 
-// This defines what a "Light" looks like in your database
 type Light = {
   id: number;
   windowId: number;
@@ -20,16 +19,14 @@ export default function Home() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
 
-  // 1. Calculate 5,000 windows for the grid
-  const totalWindows = 5000;
-  // (We keep this variable for stats, even if Skyline uses its own layout)
-  
-  // 2. Fetch the existing lights from your new Neon database
+  // Fetched lights
   const { data: lights = [] } = useQuery<Light[]>({ 
     queryKey: ["/api/lights"] 
   });
 
-  // 3. Setup the "Save" function
+  // Calculate stats
+  const totalWindows = 5000;
+
   const mutation = useMutation({
     mutationFn: async (newLight: any) => {
       const res = await apiRequest("POST", "/api/lights", newLight);
@@ -47,17 +44,16 @@ export default function Home() {
     }
   });
 
-  // Helper to check if a window is already lit
   const handleLightClick = (id: number) => {
     setActiveWindowId(id);
   };
 
   return (
-    // ROOT CONTAINER
-    <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-yellow-500/30 flex flex-col">
+    // UPDATED BACKGROUND: Dark Purple Gradient as requested
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans selection:bg-yellow-500/30 flex flex-col overflow-x-hidden">
       
       {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-md">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
@@ -65,37 +61,38 @@ export default function Home() {
               Project Skyline
             </h1>
           </div>
-          <div className="text-xs text-neutral-600 font-mono">
+          <div className="text-xs text-neutral-500 font-mono">
             CLE • 41.4993° N, 81.6944° W
           </div>
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-grow pt-32 pb-20 px-4 flex flex-col items-center">
+      {/* MAIN CONTENT */}
+      <main className="flex-grow pt-32 pb-0 px-4 flex flex-col items-center relative">
         
         {/* TEXT SECTION */}
-        <div className="max-w-7xl w-full mx-auto text-center mb-12 space-y-4">
-          <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white">
+        <div className="max-w-7xl w-full mx-auto text-center mb-8 space-y-4 z-20">
+          <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white drop-shadow-lg">
             Light Your Mark
           </h2>
-          <p className="text-neutral-400 max-w-lg mx-auto text-lg font-light">
+          <p className="text-purple-200/80 max-w-lg mx-auto text-lg font-light">
             Claim a window on the Cleveland skyline. 
-            <span className="block text-yellow-500 mt-2">
+            <span className="block text-yellow-400 mt-2 font-medium">
               {lights.length} / {totalWindows.toLocaleString()} windows illuminated.
             </span>
           </p>
         </div>
 
         {/* SKYLINE DISPLAY */}
-        <div className="w-full max-w-[1200px] mx-auto relative z-10">
+        {/* We give it full width to let buildings spread out */}
+        <div className="w-full h-[600px] flex items-end justify-center relative z-10 overflow-hidden">
            <Skyline lights={lights || []} onLightClick={handleLightClick} />
         </div>
 
-        {/* POPUP FORM (Only shows when you click a window) */}
+        {/* POPUP FORM */}
         {activeWindowId !== null && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-neutral-900 border border-white/10 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="bg-neutral-900 border border-purple-500/30 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl shadow-purple-900/20 animate-in fade-in zoom-in duration-300">
               <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId}</h3>
               
               <div className="space-y-2">
@@ -138,6 +135,6 @@ export default function Home() {
         )}
 
       </main> 
-    </div> // This closes the root container (was missing before)
+    </div>
   );
 }
