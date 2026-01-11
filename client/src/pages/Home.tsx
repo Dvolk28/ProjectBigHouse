@@ -130,11 +130,11 @@ export default function Home() {
               </div>
             </div>
           )}
-{/* MAIN CONTENT */}
-<div className="relative z-10 w-full">
-    <Skyline lights={lights || []} onLightClick={handleLightClick} />
-</div>
-      </main>
-    </div>
-  );
-}
+{/* SKYLINE SECTION */}
+      <div className="relative z-10 w-full">
+         <Skyline lights={lights || []} onLightClick={handleLightClick} />
+      </div>
+
+    </div> // Closes the main container div
+  ); // Closes the return (...)
+} // Closes the Home function
