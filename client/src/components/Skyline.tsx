@@ -1,41 +1,39 @@
 import { useState } from "react";
 
-// --- CONFIGURATION ---
-// "type": Maps to both the visual SVG shape AND the window logic.
+// --- BUILDING CONFIGURATION ---
+const WINDOW_W = 10; // Width of one window unit
+const WINDOW_H = 14; // Height of one window unit
+const GAP = 4;       // Gap between windows
+
 const BUILDINGS = [
-  // --- LEFT EXPANSION ---
-  { name: "Warehouse District", type: "flat", w: 50, h: 140 },
-  { name: "Old River Rd", type: "flat", w: 55, h: 170 },
-  { name: "The Flats", type: "slope-left", w: 60, h: 210 },
-  { name: "Justice Center", type: "block", w: 75, h: 250 },
+  // LEFT EXPANSION
+  { name: "Warehouse District", type: "flat", w: 60, h: 140 },
+  { name: "The Flats", type: "slope-left", w: 70, h: 180 },
+  { name: "Justice Center", type: "block", w: 80, h: 260 },
 
-  // --- MAIN SKYLINE ---
-  // Ernst & Young: Flat top, modern glass
-  { name: "Ernst & Young", type: "flat", w: 70, h: 290 },
-
-  // Carl B. Stokes: Distinctive curved top
-  { name: "Carl B. Stokes", type: "curve", w: 85, h: 330 },
+  // MAIN SKYLINE
+  { name: "Ernst & Young", type: "slope-right", w: 75, h: 320 },
+  { name: "Carl B. Stokes", type: "curve", w: 90, h: 350 },
   
-  // TERMINAL TOWER: Detailed Spire
-  { name: "Terminal Tower", type: "spire", w: 100, h: 540 },
+  // TERMINAL TOWER (Detailed Spire)
+  { name: "Terminal Tower", type: "spire", w: 110, h: 580 },
 
-  // KEY TOWER: Iconic Pyramid
-  { name: "Key Tower", type: "pyramid", w: 130, h: 620 },
+  // KEY TOWER (The Big Pyramid)
+  { name: "Key Tower", type: "pyramid", w: 140, h: 680 },
 
-  // 200 PUBLIC SQ: Angled Roof
-  { name: "200 Public Sq", type: "slope-right", w: 110, h: 450 },
+  // 200 PUBLIC SQUARE (Angled Roof)
+  { name: "200 Public Sq", type: "slope-cut", w: 110, h: 500 },
 
-  // ONE CLEVELAND CENTER: Chisel Shape
-  { name: "One Cleveland Ctr", type: "chisel", w: 75, h: 380 },
+  // ONE CLEVELAND CENTER (Chisel)
+  { name: "One Cleveland Ctr", type: "chisel", w: 80, h: 420 },
 
-  // SHERWIN WILLIAMS: V-Notch / Step
-  { name: "Sherwin Williams", type: "step-notch", w: 95, h: 490 },
+  // SHERWIN WILLIAMS (Notched)
+  { name: "Sherwin Williams", type: "notch", w: 100, h: 520 },
 
-  // --- RIGHT EXPANSION ---
-  { name: "The 9", type: "flat", w: 65, h: 230 },
-  { name: "PNC Center", type: "slope-left", w: 80, h: 300 },
-  { name: "Fifth Third", type: "flat", w: 60, h: 190 },
-  { name: "Federal Reserve", type: "flat", w: 90, h: 160 },
+  // RIGHT EXPANSION
+  { name: "The 9", type: "block", w: 70, h: 280 },
+  { name: "PNC Center", type: "slope-left", w: 85, h: 320 },
+  { name: "Federal Reserve", type: "block", w: 95, h: 180 },
 ];
 
 export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick: (id: number) => void }) {
@@ -58,37 +56,35 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
       )}
 
       {BUILDINGS.map((b, i) => {
-        // --- WINDOW GRID CALCULATION ---
-        const cellW = 12; // Width of a window "unit"
-        const cellH = 16; // Height of a window "unit"
-        const cols = Math.floor(b.w / cellW);
-        const rows = Math.floor(b.h / cellH);
+        // Calculate grid dimensions
+        const cols = Math.floor((b.w - GAP) / (WINDOW_W + GAP));
+        const rows = Math.floor((b.h - GAP) / (WINDOW_H + GAP));
         
         const windows = [];
 
-        // Loop purely to generate window slots
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
-            
-            // MATH CHECK: Does the window fit in the shape?
-            // "shouldRender" ensures we respect margins and roof slopes.
-            if (shouldRenderWindow(b.type, r, c, rows, cols)) {
+            // Calculate relative position (0.0 to 1.0) of this window's CENTER
+            // We use this for the math checks
+            const normX = (c + 0.5) / cols;
+            const normY = (r + 0.5) / rows; // 0 is top, 1 is bottom
+
+            // Strict math check: Does this window fit inside the building shape?
+            if (isInsideShape(b.type, normX, normY)) {
               globalWindowCount++;
               const currentId = globalWindowCount;
               const lightData = getLight(currentId);
               const isLit = !!lightData;
 
               windows.push(
-                <div 
+                <div
                   key={`${i}-${r}-${c}`}
-                  // Position windows absolutely within the grid relative to bottom-left
-                  // We inverse 'r' so row 0 is at the top visually for calculations, but CSS places it correctly
-                  className="absolute flex items-center justify-center"
+                  className="absolute"
                   style={{
-                    left: `${(c / cols) * 100}%`,
-                    top: `${(r / rows) * 100}%`,
-                    width: `${100 / cols}%`,
-                    height: `${100 / rows}%`,
+                    left: c * (WINDOW_W + GAP) + GAP,
+                    top: r * (WINDOW_H + GAP) + GAP + 2, // +2 pushes windows slightly down from very top tip
+                    width: WINDOW_W,
+                    height: WINDOW_H,
                   }}
                 >
                   <div
@@ -96,9 +92,9 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
                     onMouseEnter={() => isLit && setHoveredLight(lightData)}
                     onMouseLeave={() => setHoveredLight(null)}
                     className={`
-                      w-[60%] h-[70%] rounded-[1px] transition-all duration-300 cursor-pointer
+                      w-full h-full rounded-[1px] transition-all duration-300 cursor-pointer
                       ${isLit 
-                        ? "bg-yellow-400 shadow-[0_0_10px_rgba(253,224,71,1)] z-10 scale-125" 
+                        ? "bg-yellow-400 shadow-[0_0_8px_rgba(253,224,71,1)] z-10 scale-125" 
                         : "bg-white/10 hover:bg-white/30"}
                     `}
                   />
@@ -109,20 +105,20 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
         }
 
         return (
-          <div key={i} className="relative flex flex-col justify-end group shrink-0" style={{ width: b.w, height: b.h }}>
+          <div key={i} className="relative flex flex-col justify-end shrink-0" style={{ width: b.w, height: b.h }}>
             
-            {/* 1. VISUAL LAYER: The smooth SVG Shape */}
+            {/* 1. ACCURATE SHAPE BACKGROUND (SVG) */}
             <div className="absolute inset-0 z-0 text-slate-800 drop-shadow-2xl">
-               <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+               <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <path d={getSvgPath(b.type)} fill="currentColor" />
                </svg>
-               {/* Internal Detail Lines (adds realism) */}
-               <div className="absolute inset-0 border-x border-white/5 opacity-50 pointer-events-none"></div>
+               {/* Detail overlay */}
+               <div className="absolute inset-0 border-x border-white/5 opacity-40 pointer-events-none" />
             </div>
 
-            {/* 2. LOGIC LAYER: The Windows */}
+            {/* 2. WINDOW LAYER */}
             <div className="relative z-10 w-full h-full">
-              {windows}
+               {windows}
             </div>
 
           </div>
@@ -132,88 +128,91 @@ export function Skyline({ lights, onLightClick }: { lights: any[], onLightClick:
   );
 }
 
-// --- SHAPE DEFINITIONS ---
+// --- GEOMETRY ENGINE ---
 
-// 1. VISUAL (SVG PATHS) - 0,0 is Top-Left, 100,100 is Bottom-Right
-function getSvgPath(type: string) {
+// 1. Math Check: Is window inside the shape? (x,y are 0..1)
+function isInsideShape(type: string, x: number, y: number) {
+  // MARGIN: Don't let windows touch the absolute edges
+  if (x < 0.1 || x > 0.9) return false;
+  if (y < 0.05) return false; // Keep tip clear
+
   switch (type) {
-    case 'pyramid': return 'M50,0 L100,20 L100,100 L0,100 L0,20 Z'; // Key Tower
-    case 'spire': return 'M50,0 L60,10 L60,25 L75,25 L75,100 L25,100 L25,25 L40,25 L40,10 Z'; // Terminal Tower
-    case 'slope-right': return 'M0,15 L100,0 L100,100 L0,100 Z'; // 200 Public Sq
-    case 'slope-left': return 'M0,0 L100,15 L100,100 L0,100 Z'; 
-    case 'curve': return 'M0,15 Q50,-5 100,15 L100,100 L0,100 Z'; // Stokes
-    case 'chisel': return 'M0,0 L70,5 L100,20 L100,100 L0,100 Z'; // One Cleveland
-    case 'step-notch': return 'M0,0 L60,0 L60,10 L100,10 L100,100 L0,100 Z'; // Sherwin
-    default: return 'M0,0 L100,0 L100,100 L0,100 Z'; // Flat Block
+    case 'pyramid': // Key Tower
+      // Tip starts at y=0, x=0.5. Widens linearly.
+      // Triangle formula: |x - 0.5| < (y * slope)
+      // At y=0.15 (tip), width should be 0. At y=1, width is 0.5 (radius).
+      if (y < 0.15) return false; // Top 15% empty (spire/logo area)
+      const allowedWidth = (y - 0.15) * 0.6; 
+      return Math.abs(x - 0.5) < allowedWidth;
+
+    case 'spire': // Terminal Tower
+      // Complex shape: Spire top, widening base
+      if (y < 0.25) {
+         // Top spire: very thin, center only
+         return Math.abs(x - 0.5) < 0.08;
+      } else if (y < 0.4) {
+         // Transition
+         return Math.abs(x - 0.5) < 0.2;
+      } else {
+         // Base
+         return true;
+      }
+
+    case 'slope-cut': // 200 Public Sq (Angled top)
+      // Visual: /| (High right, Low left? Or High Left Low right?)
+      // Standard angle usually cuts one corner. Let's cut Top-Left.
+      // Equation: y must be greater than line from (0, 0.2) to (1, 0)
+      // Actually let's do the "Slope Right" (High Left, Low Right)
+      // y > x * slope
+      // Keep it simple: Cut top-right corner.
+      // Line from (0,0) to (1, 0.2)
+      return y > (0.2 - 0.2 * x); // Gentle slope
+
+    case 'slope-right': // Ernst & Young
+       // Slopes down to the right
+       // y > 0.15 * x
+       return y > (0.15 * x);
+
+    case 'slope-left': 
+       // Slopes down to the left
+       return y > (0.15 * (1-x));
+
+    case 'curve': // Stokes
+      // Dome top. Ellipse check.
+      if (y < 0.2) {
+        // x centered at 0.5.
+        // x^2/a^2 + y^2/b^2 <= 1 (roughly)
+        // simpler: must be below the curve y = 0.2 - 0.2 * sin(...)
+        return y > (0.2 - 0.2 * Math.sin(x * Math.PI));
+      }
+      return true;
+
+    case 'chisel': // One Cleveland
+      // Steep cut on top right
+      if (y < 0.2 && x > 0.6) return false;
+      return true;
+
+    case 'notch': // Sherwin
+       // Step out top right
+       if (y < 0.1 && x > 0.6) return false;
+       return true;
+
+    default: // Block / Flat
+      return true;
   }
 }
 
-// 2. LOGIC (WINDOW PLACEMENT)
-// Returns TRUE if window is safely inside the shape.
-// r=0 is TOP, r=rows-1 is BOTTOM.
-function shouldRenderWindow(type: string, r: number, c: number, rows: number, cols: number) {
-  const ny = r / rows; // 0.0 (top) -> 1.0 (bottom)
-  const nx = c / cols; // 0.0 (left) -> 1.0 (right)
-  
-  // MARGINS: Never render windows on the strict left/right edge
-  if (c === 0 || c === cols - 1) return false;
-  // Never render on the very top row (leaves a roof cap)
-  if (r === 0) return false;
-
+// 2. Visuals: SVG Paths (0-100 coordinate space)
+function getSvgPath(type: string) {
   switch (type) {
-    case 'pyramid':
-      // Triangle Logic: y must be below the diagonal lines
-      // Top 20% is just the tip, no windows
-      if (ny < 0.2) return false;
-      // Linear slope: The safe zone gets wider as we go down
-      // At ny=0.2, valid width is ~0. At ny=1.0, valid width is full.
-      const safeWidth = (ny - 0.2) / 0.8; 
-      const distFromCenter = Math.abs(nx - 0.5);
-      return distFromCenter < (safeWidth / 2);
-
-    case 'spire':
-      // Narrow central column at top
-      if (ny < 0.25) {
-         // Only center columns allowed in spire tip
-         return nx > 0.4 && nx < 0.6;
-      }
-      return true;
-
-    case 'slope-right':
-      // Slope formula: y = -mx + b.
-      // We clip the top-right corner.
-      // Visual: /|  (Wait, slope-right usually means high right, low left? Or cut right?)
-      // SVG was: M0,15 L100,0. This is "High Right".
-      // Windows should stop if they are "above" the line connecting (0, 0.15) to (1, 0)
-      const slopeLine = 0.15 - (0.15 * nx); 
-      return ny > slopeLine;
-
-    case 'slope-left':
-      // High Left, Low Right. 
-      // Line from (0,0) to (1, 0.15)
-      const slopeLineL = 0.15 * nx;
-      return ny > slopeLineL;
-
-    case 'curve':
-      // Dome: Keep windows inside an ellipse
-      if (ny < 0.2) {
-        // Simple parabolic check
-        const curveLimit = 0.2 - (0.2 * Math.sin(nx * Math.PI));
-        return ny > curveLimit;
-      }
-      return true;
-
-    case 'chisel':
-       // Top-Right corner cut off
-       if (ny < 0.2 && nx > 0.7) return false;
-       return true;
-
-    case 'step-notch':
-       // Top-Right corner missing (Step)
-       if (ny < 0.1 && nx > 0.6) return false;
-       return true;
-
-    default:
-      return true;
+    case 'pyramid': return 'M50,0 L100,20 L100,100 L0,100 L0,20 Z'; 
+    case 'spire': return 'M50,0 L58,10 L58,30 L80,30 L80,100 L20,100 L20,30 L42,30 L42,10 Z';
+    case 'slope-cut': return 'M0,0 L100,20 L100,100 L0,100 Z';
+    case 'slope-right': return 'M0,0 L100,15 L100,100 L0,100 Z';
+    case 'slope-left': return 'M0,15 L100,0 L100,100 L0,100 Z';
+    case 'curve': return 'M0,20 Q50,-10 100,20 L100,100 L0,100 Z';
+    case 'chisel': return 'M0,0 L60,5 L80,20 L100,20 L100,100 L0,100 Z';
+    case 'notch': return 'M0,0 L65,0 L65,12 L100,12 L100,100 L0,100 Z';
+    default: return 'M0,0 L100,0 L100,100 L0,100 Z';
   }
 }
