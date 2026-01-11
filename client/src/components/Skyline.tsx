@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-// --- BUILDING CONFIGURATION ---
+// --- CONFIGURATION ---
 const WINDOW_W = 10; // Width of one window unit
 const WINDOW_H = 14; // Height of one window unit
 const GAP = 4;       // Gap between windows
