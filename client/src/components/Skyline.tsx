@@ -3,9 +3,10 @@ import { useState } from "react";
 /* ================= CONFIG ================= */
 
 const WINDOW_W = 8;
-const WINDOW_H = 16;
-const GAP_Y = 6;     // vertical rhythm (floors)
-const GAP_X = 14;    // column spacing (office stacks)
+const WINDOW_H = 14;
+const FLOOR_GAP = 6;     // vertical rhythm
+const COLUMN_GAP = 14;  // horizontal spacing
+const BUILDING_GAP = 18;
 
 const BUILDINGS = [
   { name: "Warehouse District", type: "flat", w: 60, h: 140 },
@@ -27,22 +28,28 @@ const BUILDINGS = [
 
 /* ================= MAIN ================= */
 
-export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick: (id: number) => void }) {
+export function Skyline({
+  lights,
+  onLightClick,
+}: {
+  lights: any[];
+  onLightClick: (id: number) => void;
+}) {
   const [hoveredLight, setHoveredLight] = useState<any | null>(null);
   const getLight = (id: number) => lights.find((l) => l.windowId === id);
 
   let globalWindowCount = 0;
 
   return (
-    <div className="relative w-full max-w-[2200px] h-full flex items-end justify-center px-2 overflow-x-auto scrollbar-hide">
+    <div className="relative w-full max-w-[2400px] h-full flex items-end justify-center px-4 overflow-x-auto scrollbar-hide">
 
-      {/* Atmospheric glow */}
+      {/* Ambient purple city glow */}
       <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 via-transparent to-transparent pointer-events-none" />
 
       {/* Tooltip */}
       {hoveredLight && (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <div className="bg-neutral-900/95 border border-purple-500/50 p-4 rounded-xl shadow-[0_0_35px_rgba(168,85,247,0.5)]">
+          <div className="bg-neutral-900/95 border border-purple-500/50 p-4 rounded-xl shadow-[0_0_35px_rgba(168,85,247,0.45)]">
             <h3 className="text-lg font-bold text-white">{hoveredLight.name}</h3>
             <p className="text-purple-200 italic text-sm">"{hoveredLight.message}"</p>
           </div>
@@ -50,14 +57,12 @@ export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick:
       )}
 
       {BUILDINGS.map((b, i) => {
-        const cols = Math.floor(b.w / GAP_X);
-        const rows = Math.floor(b.h / (WINDOW_H + GAP_Y));
+        const cols = Math.floor(b.w / COLUMN_GAP);
+        const rows = Math.floor(b.h / (WINDOW_H + FLOOR_GAP));
 
         const windows = [];
 
         for (let c = 0; c < cols; c++) {
-          const columnOffset = (Math.random() - 0.5) * 3; // subtle imperfection
-
           for (let r = 0; r < rows; r++) {
             globalWindowCount++;
             const id = globalWindowCount;
@@ -69,8 +74,8 @@ export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick:
                 key={`${i}-${c}-${r}`}
                 className="absolute"
                 style={{
-                  left: c * GAP_X + GAP_X * 0.3 + columnOffset,
-                  top: b.h - (r + 1) * (WINDOW_H + GAP_Y),
+                  left: c * COLUMN_GAP + COLUMN_GAP * 0.35,
+                  top: b.h - (r + 1) * (WINDOW_H + FLOOR_GAP),
                   width: WINDOW_W,
                   height: WINDOW_H,
                 }}
@@ -80,9 +85,11 @@ export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick:
                   onMouseEnter={() => isLit && setHoveredLight(light)}
                   onMouseLeave={() => setHoveredLight(null)}
                   className={`w-full h-full rounded-[1px] transition-all duration-300 cursor-pointer
-                    ${isLit
-                      ? "bg-yellow-300 shadow-[0_0_12px_rgba(168,85,247,0.9),0_0_20px_rgba(253,224,71,0.9)] scale-110"
-                      : "bg-white/15 hover:bg-white/40"}
+                    ${
+                      isLit
+                        ? "bg-yellow-300 shadow-[0_0_10px_rgba(168,85,247,0.8),0_0_18px_rgba(253,224,71,0.9)]"
+                        : "bg-white/15 hover:bg-white/40"
+                    }
                   `}
                 />
               </div>
@@ -97,10 +104,10 @@ export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick:
             style={{
               width: b.w,
               height: b.h,
-              marginLeft: i === 5 ? -20 : i === 6 ? -30 : -10, // tighten skyline center
+              marginRight: BUILDING_GAP,
             }}
           >
-            {/* Clip */}
+            {/* Clip path */}
             <svg width="0" height="0">
               <defs>
                 <clipPath id={`clip-${i}`} clipPathUnits="objectBoundingBox">
@@ -109,7 +116,7 @@ export function Skyline({ lights, onLightClick }: { lights: any[]; onLightClick:
               </defs>
             </svg>
 
-            {/* Building */}
+            {/* Building body */}
             <div className="absolute inset-0 text-slate-900 drop-shadow-2xl">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
                 <path d={getSvgPath(b.type)} fill="currentColor" />
