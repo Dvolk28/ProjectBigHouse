@@ -92,6 +92,15 @@ export function Skyline({
               }
             }
             
+            // For Terminal Tower (spire), skip if window would be in the decorative top
+            if (b.type === "spire") {
+              const yFromTop = b.h - y;
+              const decorativeTopHeight = b.h * 0.12; // Exclude top 12% (spire + stepped top)
+              if (yFromTop < decorativeTopHeight) {
+                continue;
+              }
+            }
+            
             // Check if window center and corners are within building bounds with extra margin for square windows
             const windowCenterX = x + WINDOW_W / 2;
             const windowCenterY = y + WINDOW_H / 2;
@@ -170,15 +179,21 @@ export function Skyline({
             </svg>
 
             {/* Building body */}
-            <div className="absolute inset-0 text-slate-900 drop-shadow-2xl">
+            <div className="absolute inset-0 text-slate-900 drop-shadow-2xl z-0">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
                 <path d={getSvgPath(b.type)} fill="currentColor" />
               </svg>
               <div className="absolute inset-0 border-x border-white/5 opacity-40" />
             </div>
 
-            {/* Windows - no clipPath so windows stay square */}
-            <div className="absolute inset-0">
+            {/* Windows - clipPath to prevent overflow beyond building shape */}
+            <div
+              className="absolute inset-0 z-10"
+              style={{
+                clipPath: `url(#clip-${i})`,
+                WebkitClipPath: `url(#clip-${i})`,
+              }}
+            >
               {windows}
             </div>
           </div>
@@ -211,8 +226,10 @@ function isWindowFullyInBuilding(
   switch (type) {
     case "spire": {
       // Terminal Tower: only in main rectangular body, not in spire/stepped top
-      if (topY < 12) return false; // Exclude stepped top
-      return leftX >= 25 && rightX <= 75 && topY >= 12 && bottomY <= 96;
+      // Exclude the entire decorative top section (spire + stepped top)
+      if (topY < 12) return false; // Exclude stepped top and spire
+      // Ensure windows stay well within the main rectangular body
+      return leftX >= 28 && rightX <= 72 && topY >= 12 && bottomY <= 96;
     }
     case "curve": {
       // Carl B. Stokes: exclude curved top, only rectangular base
@@ -350,8 +367,8 @@ function getSvgPath(type: string) {
       // Terminal Tower: more accurate stepped art deco top with spire
       return "M50 0 L54 3 L54 8 L60 8 L60 12 L70 12 L70 96 L30 96 L30 12 L40 12 L40 8 L46 8 L46 3 Z";
     case "pyramid":
-      // Key Tower: more accurate pyramid with steeper sides
-      return "M50 0 L97 3 L97 97 L3 97 L3 3 Z";
+      // Key Tower: pyramid shape with clear visible top
+      return "M50 0 L100 5 L100 97 L0 97 L0 5 Z";
     case "curve":
       // Carl B. Stokes: smoother curve
       return "M0 25 Q50 -5 100 25 L100 97 L0 97 Z";
