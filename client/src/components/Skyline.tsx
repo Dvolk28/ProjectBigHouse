@@ -7,7 +7,8 @@ const WINDOW_H = 14;
 const FLOOR_GAP = 6;     // vertical rhythm
 const COLUMN_GAP = 14;  // horizontal spacing
 const BUILDING_GAP = 18;
-const WINDOW_PADDING = 4; // Padding from building edges to prevent clipping
+const WINDOW_PADDING = 6; // Padding from building edges to prevent clipping
+const SLANT_PADDING = 12; // Extra padding for slanted edges to keep windows square
 
 const BUILDINGS = [
   { name: "Warehouse District", type: "flat", w: 60, h: 140 },
@@ -58,17 +59,40 @@ export function Skyline({
       )}
 
       {BUILDINGS.map((b, i) => {
-        const cols = Math.floor((b.w - WINDOW_PADDING * 2) / COLUMN_GAP);
-        const rows = Math.floor((b.h - WINDOW_PADDING * 2) / (WINDOW_H + FLOOR_GAP));
+        // For pyramid, only use the rectangular base (exclude top pyramid section)
+        const pyramidTopHeight = b.type === "pyramid" ? b.h * 0.15 : 0;
+        const usableHeight = b.h - pyramidTopHeight;
+        
+        // Calculate padding based on building type
+        const leftPadding = (b.type === "slope-left" || b.type === "cut" || b.type === "chisel" || b.type === "notch") 
+          ? SLANT_PADDING 
+          : WINDOW_PADDING;
+        const rightPadding = (b.type === "slope-right" || b.type === "cut" || b.type === "chisel" || b.type === "notch") 
+          ? SLANT_PADDING 
+          : WINDOW_PADDING;
+        const topPadding = WINDOW_PADDING;
+        const bottomPadding = WINDOW_PADDING;
+        
+        const cols = Math.floor((b.w - leftPadding - rightPadding) / COLUMN_GAP);
+        const rows = Math.floor((usableHeight - topPadding - bottomPadding) / (WINDOW_H + FLOOR_GAP));
 
         const windows = [];
 
         for (let c = 0; c < cols; c++) {
           for (let r = 0; r < rows; r++) {
-            const x = WINDOW_PADDING + c * COLUMN_GAP + COLUMN_GAP * 0.35;
-            const y = b.h - WINDOW_PADDING - (r + 1) * (WINDOW_H + FLOOR_GAP);
+            const x = leftPadding + c * COLUMN_GAP + COLUMN_GAP * 0.35;
+            // Position from bottom, accounting for pyramid top exclusion
+            const y = b.h - bottomPadding - (r + 1) * (WINDOW_H + FLOOR_GAP);
             
-            // Check if window center and corners are within building bounds
+            // For pyramid, skip if window would be in the pyramid top section
+            if (b.type === "pyramid") {
+              const yFromTop = b.h - y;
+              if (yFromTop < pyramidTopHeight) {
+                continue;
+              }
+            }
+            
+            // Check if window center and corners are within building bounds with extra margin for square windows
             const windowCenterX = x + WINDOW_W / 2;
             const windowCenterY = y + WINDOW_H / 2;
             const windowTopY = y;
@@ -84,12 +108,13 @@ export function Skyline({
             const leftXPercent = (windowLeftX / b.w) * 100;
             const rightXPercent = (windowRightX / b.w) * 100;
             
-            // Check if window is within building shape
-            if (isPointInBuilding(centerXPercent, centerYPercent, b.type) &&
-                isPointInBuilding(leftXPercent, topYPercent, b.type) &&
-                isPointInBuilding(rightXPercent, topYPercent, b.type) &&
-                isPointInBuilding(leftXPercent, bottomYPercent, b.type) &&
-                isPointInBuilding(rightXPercent, bottomYPercent, b.type)) {
+            // Check if window is fully within building shape with margin to keep it square
+            if (isWindowFullyInBuilding(
+              leftXPercent, rightXPercent, 
+              topYPercent, bottomYPercent,
+              centerXPercent, centerYPercent,
+              b.type
+            )) {
               
               globalWindowCount++;
               const id = globalWindowCount;
@@ -152,14 +177,8 @@ export function Skyline({
               <div className="absolute inset-0 border-x border-white/5 opacity-40" />
             </div>
 
-            {/* Windows */}
-            <div
-              className="absolute inset-0"
-              style={{
-                clipPath: `url(#clip-${i})`,
-                WebkitClipPath: `url(#clip-${i})`,
-              }}
-            >
+            {/* Windows - no clipPath so windows stay square */}
+            <div className="absolute inset-0">
               {windows}
             </div>
           </div>
@@ -170,6 +189,69 @@ export function Skyline({
 }
 
 /* ================= SHAPES ================= */
+
+// Check if a window is fully within building bounds (keeps windows square)
+function isWindowFullyInBuilding(
+  leftX: number, rightX: number,
+  topY: number, bottomY: number,
+  centerX: number, centerY: number,
+  type: string
+): boolean {
+  // For pyramid, exclude the top pyramid section entirely
+  if (type === "pyramid") {
+    // Only allow windows in the rectangular base (below 15% from top)
+    if (topY < 15) return false;
+    // Check if window fits within the rectangular base with padding
+    return leftX >= 5 && rightX <= 95 && topY >= 15 && bottomY <= 97;
+  }
+  
+  // For other shapes, check all corners and center are within bounds
+  const margin = 2; // Small margin to ensure window stays square
+  
+  switch (type) {
+    case "spire": {
+      // Terminal Tower: only in main rectangular body, not in spire/stepped top
+      if (topY < 12) return false; // Exclude stepped top
+      return leftX >= 25 && rightX <= 75 && topY >= 12 && bottomY <= 96;
+    }
+    case "curve": {
+      // Carl B. Stokes: exclude curved top, only rectangular base
+      if (topY < 25) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 25 && bottomY <= 97;
+    }
+    case "slope-right": {
+      // Sloping right edge - ensure window is well away from slope
+      const slopeX = topY * 0.18;
+      const minX = Math.max(margin, slopeX + 8); // Extra padding from slope
+      return leftX >= minX && rightX <= (100 - margin) && topY >= margin && bottomY <= 97;
+    }
+    case "slope-left": {
+      // Sloping left edge - ensure window is well away from slope
+      const slopeX = 100 - (topY * 0.18);
+      const maxX = Math.min(100 - margin, slopeX - 8); // Extra padding from slope
+      return leftX >= margin && rightX <= maxX && topY >= margin && bottomY <= 97;
+    }
+    case "cut": {
+      // 200 Public Square: exclude cut corner area
+      if (topY < 15) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 15 && bottomY <= 97;
+    }
+    case "chisel": {
+      // One Cleveland Center: exclude chiseled top
+      if (topY < 15) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 15 && bottomY <= 97;
+    }
+    case "notch": {
+      // Sherwin Williams: exclude notched top
+      if (topY < 12) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 12 && bottomY <= 97;
+    }
+    default: {
+      // Flat/block: simple rectangle with margins
+      return leftX >= margin && rightX <= (100 - margin) && topY >= margin && bottomY <= 97;
+    }
+  }
+}
 
 // Check if a point (x, y in percentage 0-100) is within the building shape
 function isPointInBuilding(x: number, y: number, type: string): boolean {
