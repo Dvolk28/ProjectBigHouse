@@ -1,135 +1,97 @@
-import { useState, useMemo } from "react";
+import { useRef, useEffect, useState } from "react";
 
 /* ================= CONFIG ================= */
 
+const CANVAS_HEIGHT = 520;
 const WINDOW = 10;
-const FLOOR_GAP = 10;
-const COLUMN_GAP = 18;
-const EDGE = 14;
-
-const BUILDING_GAP = 28;
-const TERMINAL_GAP = 56;
+const GAP_X = 18;
+const GAP_Y = 14;
+const EDGE = 16;
 
 const BUILDINGS = [
-  { name: "Warehouse", type: "flat", w: 70, h: 160 },
-  { name: "Flats", type: "slope-left", w: 80, h: 210 },
-  { name: "Justice", type: "block", w: 95, h: 290 },
-
-  { name: "Ernst", type: "slope-right", w: 100, h: 350 },
-  { name: "Stokes", type: "curve", w: 115, h: 390 },
-  { name: "Terminal Tower", type: "spire", w: 150, h: 660 },
-  { name: "Key Tower", type: "pyramid", w: 180, h: 760 },
-  { name: "Public Sq", type: "cut", w: 125, h: 560 },
-  { name: "Cleveland Center", type: "chisel", w: 110, h: 480 },
-  { name: "Sherwin", type: "notch", w: 125, h: 580 },
+  { type: "flat", w: 80, h: 160 },
+  { type: "slope-left", w: 90, h: 220 },
+  { type: "block", w: 100, h: 300 },
+  { type: "slope-right", w: 110, h: 360 },
+  { type: "curve", w: 120, h: 390 },
+  { type: "spire", w: 150, h: 500 },
+  { type: "pyramid", w: 180, h: 520 },
+  { type: "cut", w: 120, h: 420 },
+  { type: "chisel", w: 110, h: 380 },
+  { type: "notch", w: 120, h: 440 },
 ];
 
 /* ================= MAIN ================= */
 
 export function Skyline({ lights, onLightClick }: any) {
-  const [hovered, setHovered] = useState<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hover, setHover] = useState<number | null>(null);
 
-  let idCounter = 0;
+  useEffect(() => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let xOffset = 40;
+    let windowId = 1;
+
+    for (const b of BUILDINGS) {
+      const cols = Math.floor((b.w - EDGE * 2) / GAP_X);
+      const rows = Math.floor((b.h - 40) / GAP_Y);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = xOffset + EDGE + c * GAP_X;
+          const y = CANVAS_HEIGHT - (r + 1) * GAP_Y - 10;
+
+          const lit = lights.some((l: any) => l.windowId === windowId);
+
+          ctx.fillStyle = lit ? "#fbbf24" : "rgba(148,163,184,0.25)";
+          ctx.fillRect(x, y, WINDOW, WINDOW);
+
+          windowId++;
+        }
+      }
+
+      xOffset += b.w + 28;
+    }
+  }, [lights]);
 
   return (
-    <div className="relative w-full min-h-[900px] overflow-visible flex items-end justify-center px-8">
-
+    <div className="relative w-full h-[520px] overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 -top-32 bg-gradient-to-t from-black via-slate-900 to-slate-950" />
-      <div className="absolute inset-0 -top-32 bg-purple-900/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-900 to-slate-950" />
+      <div className="absolute inset-0 bg-purple-900/20" />
 
-      {/* Tooltip */}
-      {hovered && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-black/90 border border-purple-500/40 px-4 py-3 rounded-xl">
-            <h3 className="font-bold text-white">{hovered.name}</h3>
-            <p className="text-purple-200 italic text-sm">
-              "{hovered.message}"
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Canvas */}
+      <canvas
+        ref={canvasRef}
+        width={2400}
+        height={CANVAS_HEIGHT}
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+      />
 
-      {BUILDINGS.map((b, i) => {
-        const cols = Math.floor((b.w - EDGE * 2) / COLUMN_GAP);
-        const rows = Math.floor((b.h - 60) / (WINDOW + FLOOR_GAP));
-
-        const windows = useMemo(() => {
-          const out = [];
-          for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-              idCounter++;
-
-              const x = EDGE + c * COLUMN_GAP;
-              const y = b.h - 36 - r * (WINDOW + FLOOR_GAP);
-
-              // Storytelling lighting pattern
-              const residential = r % 4 === 0;
-              const light = lights.find((l: any) => l.windowId === idCounter);
-              const lit = !!light;
-
-              out.push(
-                <div
-                  key={`${i}-${r}-${c}`}
-                  className="absolute"
-                  style={{ left: x, top: y, width: WINDOW, height: WINDOW }}
-                >
-                  <div
-                    onClick={() => onLightClick(idCounter)}
-                    onMouseEnter={() => lit && setHovered(light)}
-                    onMouseLeave={() => setHovered(null)}
-                    className={`w-full h-full rounded-sm transition
-                      ${
-                        lit
-                          ? "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.9)]"
-                          : residential
-                          ? "bg-slate-600/25"
-                          : "bg-slate-700/30"
-                      }`}
-                  />
-                </div>
-              );
-            }
-          }
-          return out;
-        }, [lights]);
-
-        const gap = b.type === "spire" ? TERMINAL_GAP : BUILDING_GAP;
-
-        return (
-          <div
+      {/* Buildings */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end">
+        {BUILDINGS.map((b, i) => (
+          <svg
             key={i}
-            className="relative shrink-0 overflow-visible"
-            style={{ width: b.w, height: b.h, marginRight: gap }}
+            width={b.w}
+            height={b.h}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="mr-7"
           >
-            {/* Building */}
-            <svg
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              className="absolute inset-0"
-            >
-              <defs>
-                <linearGradient id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1e293b" />
-                  <stop offset="100%" stopColor="#020617" />
-                </linearGradient>
-              </defs>
-              <path d={getSvgPath(b.type)} fill={`url(#grad-${i})`} />
-            </svg>
-
-            {/* Terminal Tower Crown */}
-            {b.type === "spire" && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[40px] h-[120px]
-                              bg-purple-500/40 blur-xl pointer-events-none" />
-            )}
-
-            {/* Windows */}
-            <div className="absolute inset-0 overflow-hidden">
-              {windows}
-            </div>
-          </div>
-        );
-      })}
+            <defs>
+              <linearGradient id={`g-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1e293b" />
+                <stop offset="100%" stopColor="#020617" />
+              </linearGradient>
+            </defs>
+            <path d={getSvgPath(b.type)} fill={`url(#g-${i})`} />
+          </svg>
+        ))}
+      </div>
     </div>
   );
 }
@@ -139,22 +101,22 @@ export function Skyline({ lights, onLightClick }: any) {
 function getSvgPath(type: string) {
   switch (type) {
     case "spire":
-      return "M50 0 L52 2 L54 4 L56 6 L60 8 L60 14 L76 14 L76 96 L24 96 L24 14 L40 14 L40 8 L44 6 L46 4 L48 2 Z";
+      return "M50 0 L52 3 L56 6 L60 10 L60 16 L76 16 L76 100 L24 100 L24 16 L40 16 L40 10 L44 6 L48 3 Z";
     case "pyramid":
-      return "M50 0 L100 8 L100 96 L0 96 L0 8 Z";
+      return "M50 0 L100 10 L100 100 L0 100 L0 10 Z";
     case "curve":
-      return "M0 28 Q50 -6 100 28 L100 96 L0 96 Z";
+      return "M0 30 Q50 -5 100 30 L100 100 L0 100 Z";
     case "slope-right":
-      return "M0 0 L100 20 L100 96 L0 96 Z";
+      return "M0 0 L100 20 L100 100 L0 100 Z";
     case "slope-left":
-      return "M0 20 L100 0 L100 96 L0 96 Z";
+      return "M0 20 L100 0 L100 100 L0 100 Z";
     case "cut":
-      return "M0 0 L88 0 L100 16 L100 96 L0 96 Z";
+      return "M0 0 L85 0 L100 15 L100 100 L0 100 Z";
     case "chisel":
-      return "M0 0 L68 0 L82 16 L100 16 L100 96 L0 96 Z";
+      return "M0 0 L65 0 L80 15 L100 15 L100 100 L0 100 Z";
     case "notch":
-      return "M0 0 L68 0 L68 12 L100 12 L100 96 L0 96 Z";
+      return "M0 0 L70 0 L70 12 L100 12 L100 100 L0 100 Z";
     default:
-      return "M0 0 L100 0 L100 96 L0 96 Z";
+      return "M0 0 L100 0 L100 100 L0 100 Z";
   }
 }
