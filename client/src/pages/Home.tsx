@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Skyline } from "@/components/Skyline";
+import Skyline from "@/components/Skyline";
 
 type Light = {
   id: number;
