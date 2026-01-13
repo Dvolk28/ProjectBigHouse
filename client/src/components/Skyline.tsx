@@ -8,48 +8,46 @@ interface SkylineProps {
 }
 
 export default function Skyline({ buildings, lights, onWindowClick }: SkylineProps) {
-  return (
-    <div className="relative w-full h-full min-h-[400px] overflow-hidden">
-      {/* Background glow */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 100%, rgba(169,112,255,0.12) 0%, transparent 60%)",
-        }}
+ return (
+  <div className="relative w-full h-[520px] overflow-hidden">
+    {/* Background */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-900 to-slate-950" />
+    <div className="absolute inset-0 bg-purple-900/20" />
+
+    {/* SKYLINE WRAPPER */}
+    <div
+      className="absolute bottom-0 left-1/2 -translate-x-1/2"
+      style={{ width: 2400, height: CANVAS_HEIGHT }}
+    >
+      {/* Windows Canvas */}
+      <canvas
+        ref={canvasRef}
+        width={2400}
+        height={CANVAS_HEIGHT}
+        className="absolute bottom-0 left-0"
       />
 
-      {/* Stars */}
-      <div className="absolute inset-0">
-        {Array.from({ length: 50 }).map((_, i) => (
-          <div
+      {/* Buildings */}
+      <div className="absolute bottom-0 left-0 flex items-end">
+        {BUILDINGS.map((b, i) => (
+          <svg
             key={i}
-            className="absolute rounded-full bg-white/20"
-            style={{
-              width: Math.random() * 2 + 1,
-              height: Math.random() * 2 + 1,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 60}%`,
-              opacity: Math.random() * 0.5 + 0.2,
-            }}
-          />
+            width={b.w}
+            height={b.h}
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="mr-7"
+          >
+            <defs>
+              <linearGradient id={`g-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1e293b" />
+                <stop offset="100%" stopColor="#020617" />
+              </linearGradient>
+            </defs>
+            <path d={getSvgPath(b.type)} fill={`url(#g-${i})`} />
+          </svg>
         ))}
       </div>
-
-      {/* Skyline */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-end justify-center gap-2 px-4">
-        {buildings.map((building) => (
-          <Building
-            key={building.id}
-            building={building}
-            lights={lights}
-            onWindowClick={onWindowClick}
-          />
-        ))}
-      </div>
-
-      {/* Ground fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-[#0a0f1a] to-transparent" />
     </div>
-  );
-}
+  </div>
+);
