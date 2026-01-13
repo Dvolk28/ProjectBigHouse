@@ -2,30 +2,30 @@ import { useState } from "react";
 
 /* ================= CONFIG ================= */
 
-const WINDOW_W = 8;
-const WINDOW_H = 14;
-const FLOOR_GAP = 6;     // vertical rhythm
-const COLUMN_GAP = 14;  // horizontal spacing
-const BUILDING_GAP = 18;
-const WINDOW_PADDING = 6; // Padding from building edges to prevent clipping
-const SLANT_PADDING = 12; // Extra padding for slanted edges to keep windows square
+const WINDOW_W = 10;
+const WINDOW_H = 10;  // Square windows for professional look
+const FLOOR_GAP = 8;     // Better vertical rhythm
+const COLUMN_GAP = 16;  // Better horizontal spacing
+const BUILDING_GAP = 20;
+const WINDOW_PADDING = 8; // Professional padding from building edges
+const SLANT_PADDING = 14; // Extra padding for slanted edges
 
 const BUILDINGS = [
-  { name: "Warehouse District", type: "flat", w: 60, h: 140 },
-  { name: "The Flats", type: "slope-left", w: 70, h: 180 },
-  { name: "Justice Center", type: "block", w: 80, h: 260 },
+  { name: "Warehouse District", type: "flat", w: 65, h: 150 },
+  { name: "The Flats", type: "slope-left", w: 75, h: 200 },
+  { name: "Justice Center", type: "block", w: 85, h: 280 },
 
-  { name: "Ernst & Young", type: "slope-right", w: 80, h: 320 },
-  { name: "Carl B. Stokes", type: "curve", w: 95, h: 360 },
-  { name: "Terminal Tower", type: "spire", w: 120, h: 600 },
-  { name: "Key Tower", type: "pyramid", w: 150, h: 700 },
-  { name: "200 Public Sq", type: "cut", w: 110, h: 520 },
-  { name: "One Cleveland Center", type: "chisel", w: 90, h: 440 },
-  { name: "Sherwin Williams", type: "notch", w: 105, h: 540 },
+  { name: "Ernst & Young", type: "slope-right", w: 85, h: 340 },
+  { name: "Carl B. Stokes", type: "curve", w: 100, h: 380 },
+  { name: "Terminal Tower", type: "spire", w: 130, h: 650 },
+  { name: "Key Tower", type: "pyramid", w: 160, h: 750 },
+  { name: "200 Public Sq", type: "cut", w: 115, h: 550 },
+  { name: "One Cleveland Center", type: "chisel", w: 95, h: 470 },
+  { name: "Sherwin Williams", type: "notch", w: 110, h: 570 },
 
-  { name: "The 9", type: "block", w: 75, h: 300 },
-  { name: "PNC Center", type: "slope-left", w: 85, h: 330 },
-  { name: "Federal Reserve", type: "block", w: 95, h: 190 },
+  { name: "The 9", type: "block", w: 80, h: 320 },
+  { name: "PNC Center", type: "slope-left", w: 90, h: 350 },
+  { name: "Federal Reserve", type: "block", w: 100, h: 210 },
 ];
 
 /* ================= MAIN ================= */
@@ -45,8 +45,9 @@ export function Skyline({
   return (
     <div className="relative w-full max-w-[2400px] h-full flex items-end justify-center px-4 overflow-x-auto scrollbar-hide">
 
-      {/* Ambient purple city glow */}
-      <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 via-transparent to-transparent pointer-events-none" />
+      {/* Professional night sky gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900 to-slate-950 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-purple-950/30 via-transparent to-transparent pointer-events-none" />
 
       {/* Tooltip */}
       {hoveredLight && (
@@ -60,7 +61,7 @@ export function Skyline({
 
       {BUILDINGS.map((b, i) => {
         // For pyramid, only use the rectangular base (exclude top pyramid section)
-        const pyramidTopHeight = b.type === "pyramid" ? b.h * 0.15 : 0;
+        const pyramidTopHeight = b.type === "pyramid" ? b.h * 0.07 : 0;
         const usableHeight = b.h - pyramidTopHeight;
         
         // Calculate padding based on building type
@@ -95,7 +96,7 @@ export function Skyline({
             // For Terminal Tower (spire), skip if window would be in the decorative top
             if (b.type === "spire") {
               const yFromTop = b.h - y;
-              const decorativeTopHeight = b.h * 0.13; // Exclude top 13% (spire + stepped top)
+              const decorativeTopHeight = b.h * 0.12; // Exclude top 12% (spire + stepped top)
               if (yFromTop < decorativeTopHeight) {
                 continue;
               }
@@ -145,11 +146,11 @@ export function Skyline({
                     onClick={() => onLightClick(id)}
                     onMouseEnter={() => isLit && setHoveredLight(light)}
                     onMouseLeave={() => setHoveredLight(null)}
-                    className={`w-full h-full rounded-[1px] transition-all duration-300 cursor-pointer
+                    className={`w-full h-full rounded-sm transition-all duration-300 cursor-pointer
                       ${
                         isLit
-                          ? "bg-yellow-300 shadow-[0_0_10px_rgba(168,85,247,0.8),0_0_18px_rgba(253,224,71,0.9)]"
-                          : "bg-white/15 hover:bg-white/40"
+                          ? "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.9),0_0_24px_rgba(251,191,36,0.6),inset_0_0_8px_rgba(255,255,255,0.3)]"
+                          : "bg-slate-700/30 hover:bg-slate-600/50 border border-slate-600/20"
                       }
                     `}
                   />
@@ -179,11 +180,22 @@ export function Skyline({
             </svg>
 
             {/* Building body */}
-            <div className="absolute inset-0 text-slate-900 drop-shadow-2xl z-0">
+            <div className="absolute inset-0 z-0">
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-                <path d={getSvgPath(b.type)} fill="currentColor" />
+                <defs>
+                  <linearGradient id={`building-gradient-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#1e293b" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#0f172a" stopOpacity="1" />
+                  </linearGradient>
+                </defs>
+                <path 
+                  d={getSvgPath(b.type)} 
+                  fill={`url(#building-gradient-${i})`}
+                  className="drop-shadow-lg"
+                />
               </svg>
-              <div className="absolute inset-0 border-x border-white/5 opacity-40" />
+              {/* Subtle vertical lines for depth */}
+              <div className="absolute inset-0 border-x border-slate-700/20" />
             </div>
 
             {/* Windows - clipPath to prevent overflow beyond building shape */}
@@ -214,10 +226,10 @@ function isWindowFullyInBuilding(
 ): boolean {
   // For pyramid, exclude the top pyramid section entirely
   if (type === "pyramid") {
-    // Only allow windows in the rectangular base (below 15% from top)
-    if (topY < 15) return false;
+    // Only allow windows in the rectangular base (below 7% from top where pyramid starts)
+    if (topY < 7) return false;
     // Check if window fits within the rectangular base with padding
-    return leftX >= 5 && rightX <= 95 && topY >= 15 && bottomY <= 97;
+    return leftX >= 6 && rightX <= 94 && topY >= 7 && bottomY <= 97;
   }
   
   // For other shapes, check all corners and center are within bounds
@@ -227,14 +239,14 @@ function isWindowFullyInBuilding(
     case "spire": {
       // Terminal Tower: only in main rectangular body, not in spire/stepped top
       // Exclude the entire decorative top section (spire + stepped top)
-      if (topY < 13) return false; // Exclude stepped top and spire (top 13%)
+      if (topY < 12) return false; // Exclude stepped top and spire (top 12%)
       // Ensure windows stay well within the main rectangular body
-      return leftX >= 28 && rightX <= 72 && topY >= 13 && bottomY <= 96;
+      return leftX >= 24 && rightX <= 76 && topY >= 12 && bottomY <= 96;
     }
     case "curve": {
       // Carl B. Stokes: exclude curved top, only rectangular base
-      if (topY < 25) return false;
-      return leftX >= margin && rightX <= (100 - margin) && topY >= 25 && bottomY <= 97;
+      if (topY < 28) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 28 && bottomY <= 97;
     }
     case "slope-right": {
       // Sloping right edge - ensure window is well away from slope
@@ -250,18 +262,18 @@ function isWindowFullyInBuilding(
     }
     case "cut": {
       // 200 Public Square: exclude cut corner area
-      if (topY < 15) return false;
-      return leftX >= margin && rightX <= (100 - margin) && topY >= 15 && bottomY <= 97;
+      if (topY < 16) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 16 && bottomY <= 97;
     }
     case "chisel": {
       // One Cleveland Center: exclude chiseled top
-      if (topY < 15) return false;
-      return leftX >= margin && rightX <= (100 - margin) && topY >= 15 && bottomY <= 97;
+      if (topY < 16) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 16 && bottomY <= 97;
     }
     case "notch": {
       // Sherwin Williams: exclude notched top
-      if (topY < 12) return false;
-      return leftX >= margin && rightX <= (100 - margin) && topY >= 12 && bottomY <= 97;
+      if (topY < 13) return false;
+      return leftX >= margin && rightX <= (100 - margin) && topY >= 13 && bottomY <= 97;
     }
     default: {
       // Flat/block: simple rectangle with margins
@@ -364,31 +376,33 @@ function isPointInBuilding(x: number, y: number, type: string): boolean {
 function getSvgPath(type: string) {
   switch (type) {
     case "spire":
-      // Terminal Tower: stepped art deco top with small flat spire
-      // Small flat spire (top 2%), then stepped sections, then main rectangular body
-      return "M50 0 L52 2 L52 4 L56 4 L56 6 L60 6 L60 8 L66 8 L66 10 L72 10 L72 12 L74 12 L74 96 L26 96 L26 12 L28 12 L28 10 L34 10 L34 8 L40 8 L40 6 L44 6 L44 4 L48 4 L48 2 Z";
+      // Terminal Tower: Professional stepped art deco design with distinct spire
+      // Small spire point, then clear stepped sections, then main body
+      return "M50 0 L51 1.2 L51 2.5 L53 2.5 L53 4 L56 4 L56 5.5 L59 5.5 L59 7 L63 7 L63 8.5 L68 8.5 L68 10 L74 10 L74 11.5 L78 11.5 L78 96 L22 96 L22 11.5 L26 11.5 L26 10 L32 10 L32 8.5 L37 8.5 L37 7 L41 7 L41 5.5 L44 5.5 L44 4 L47 4 L47 2.5 L49 2.5 L49 1.2 Z";
     case "pyramid":
-      // Key Tower: distinct pyramid shape with clear visible top
-      return "M50 0 L100 6 L100 97 L0 97 L0 6 Z";
+      // Key Tower: Professional pyramid with clear, visible top section
+      // Pyramid starts at point, slopes down to rectangular base
+      return "M50 0 L100 7 L100 97 L0 97 L0 7 Z";
     case "curve":
-      // Carl B. Stokes: smoother curve
-      return "M0 25 Q50 -5 100 25 L100 97 L0 97 Z";
+      // Carl B. Stokes: Smooth, professional curved top
+      return "M0 28 Q50 -3 100 28 L100 97 L0 97 Z";
     case "slope-right":
-      // Sloping right edge
-      return "M0 0 L100 18 L100 97 L0 97 Z";
+      // Professional sloping right edge
+      return "M0 0 L100 20 L100 97 L0 97 Z";
     case "slope-left":
-      // Sloping left edge
-      return "M0 18 L100 0 L100 97 L0 97 Z";
+      // Professional sloping left edge
+      return "M0 20 L100 0 L100 97 L0 97 Z";
     case "cut":
-      // 200 Public Square: cut corner
-      return "M0 0 L85 0 L100 15 L100 97 L0 97 Z";
+      // 200 Public Square: Clean cut corner design
+      return "M0 0 L88 0 L100 16 L100 97 L0 97 Z";
     case "chisel":
-      // One Cleveland Center: chiseled top
-      return "M0 0 L65 0 L80 15 L100 15 L100 97 L0 97 Z";
+      // One Cleveland Center: Professional chiseled top
+      return "M0 0 L68 0 L82 16 L100 16 L100 97 L0 97 Z";
     case "notch":
-      // Sherwin Williams: notched top
-      return "M0 0 L65 0 L65 12 L100 12 L100 97 L0 97 Z";
+      // Sherwin Williams: Clean notched top
+      return "M0 0 L68 0 L68 13 L100 13 L100 97 L0 97 Z";
     default:
+      // Clean rectangular buildings
       return "M0 0 L100 0 L100 97 L0 97 Z";
   }
 }
