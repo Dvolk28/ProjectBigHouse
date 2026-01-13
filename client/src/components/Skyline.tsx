@@ -95,7 +95,7 @@ export function Skyline({
             // For Terminal Tower (spire), skip if window would be in the decorative top
             if (b.type === "spire") {
               const yFromTop = b.h - y;
-              const decorativeTopHeight = b.h * 0.12; // Exclude top 12% (spire + stepped top)
+              const decorativeTopHeight = b.h * 0.13; // Exclude top 13% (spire + stepped top)
               if (yFromTop < decorativeTopHeight) {
                 continue;
               }
@@ -227,9 +227,9 @@ function isWindowFullyInBuilding(
     case "spire": {
       // Terminal Tower: only in main rectangular body, not in spire/stepped top
       // Exclude the entire decorative top section (spire + stepped top)
-      if (topY < 12) return false; // Exclude stepped top and spire
+      if (topY < 13) return false; // Exclude stepped top and spire (top 13%)
       // Ensure windows stay well within the main rectangular body
-      return leftX >= 28 && rightX <= 72 && topY >= 12 && bottomY <= 96;
+      return leftX >= 28 && rightX <= 72 && topY >= 13 && bottomY <= 96;
     }
     case "curve": {
       // Carl B. Stokes: exclude curved top, only rectangular base
@@ -364,11 +364,12 @@ function isPointInBuilding(x: number, y: number, type: string): boolean {
 function getSvgPath(type: string) {
   switch (type) {
     case "spire":
-      // Terminal Tower: more accurate stepped art deco top with spire
-      return "M50 0 L54 3 L54 8 L60 8 L60 12 L70 12 L70 96 L30 96 L30 12 L40 12 L40 8 L46 8 L46 3 Z";
+      // Terminal Tower: stepped art deco top with small flat spire
+      // Small flat spire (top 2%), then stepped sections, then main rectangular body
+      return "M50 0 L52 2 L52 4 L56 4 L56 6 L60 6 L60 8 L66 8 L66 10 L72 10 L72 12 L74 12 L74 96 L26 96 L26 12 L28 12 L28 10 L34 10 L34 8 L40 8 L40 6 L44 6 L44 4 L48 4 L48 2 Z";
     case "pyramid":
-      // Key Tower: pyramid shape with clear visible top
-      return "M50 0 L100 5 L100 97 L0 97 L0 5 Z";
+      // Key Tower: distinct pyramid shape with clear visible top
+      return "M50 0 L100 6 L100 97 L0 97 L0 6 Z";
     case "curve":
       // Carl B. Stokes: smoother curve
       return "M0 25 Q50 -5 100 25 L100 97 L0 97 Z";
