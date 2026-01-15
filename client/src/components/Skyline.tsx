@@ -31,11 +31,13 @@ export default function Skyline({
   onLightClick?: (id: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const windowMapRef = useRef<Map<number, { x: number; y: number; w: number; h: number }>>(new Map());
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -43,25 +45,21 @@ export default function Skyline({
     ctx.clearRect(0, 0, CANVAS_WIDTH, HEIGHT);
     windowMapRef.current.clear();
 
-    const buildingGap = 20; // gap-5 = 1.25rem = 20px
+    // Get actual building elements to measure their positions
+    const buildingElements = container.querySelectorAll('svg');
     let windowId = 1;
 
-    // Calculate starting position for each building
-    let buildingPositions = [];
-    let xPos = 40; // Initial left offset
-    
-    for (const b of BUILDINGS) {
-      buildingPositions.push(xPos);
-      xPos += b.w + buildingGap;
-    }
-
-    for (let buildingIndex = 0; buildingIndex < BUILDINGS.length; buildingIndex++) {
+    buildingElements.forEach((svgEl, buildingIndex) => {
       const b = BUILDINGS[buildingIndex];
-      const xOffset = buildingPositions[buildingIndex];
+      const rect = svgEl.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      // Get actual x position relative to container
+      const xOffset = rect.left - containerRect.left;
       
       // Calculate usable area for windows
-      const usableWidth = b.w * 0.7; // 70% of building width
-      const usableHeight = b.h * 0.8; // 80% of building height
+      const usableWidth = b.w * 0.7;
+      const usableHeight = b.h * 0.8;
       
       const cols = Math.floor(usableWidth / GAP_X);
       const rows = Math.floor(usableHeight / GAP_Y);
@@ -78,29 +76,24 @@ export default function Skyline({
           const y = startY + r * GAP_Y;
 
           // Check if window should be rendered based on building shape
-          const relativeY = (y - (HEIGHT - b.h)) / b.h; // 0 to 1 from bottom to top
-          const relativeX = (x - xOffset) / b.w; // 0 to 1 from left to right
+          const relativeY = (y - (HEIGHT - b.h)) / b.h;
+          const relativeX = (x - xOffset) / b.w;
           
           let shouldRender = true;
           
           // Adjust for building shapes
           if (b.type === "pyramid") {
-            // Pyramid narrows as it goes up
             const widthAtHeight = 1 - (relativeY * 0.3);
             shouldRender = relativeX > (0.5 - widthAtHeight/2) && relativeX < (0.5 + widthAtHeight/2);
           } else if (b.type === "slope-left") {
-            // Slopes from right down to left
             shouldRender = relativeX > (relativeY * 0.2);
           } else if (b.type === "slope-right") {
-            // Slopes from left down to right
             shouldRender = relativeX < (1 - relativeY * 0.2);
           } else if (b.type === "spire") {
-            // Narrow top section
             if (relativeY < 0.2) {
               shouldRender = relativeX > 0.35 && relativeX < 0.65;
             }
           } else if (b.type === "notch") {
-            // Has a notch at top right
             if (relativeY < 0.15 && relativeX > 0.7) {
               shouldRender = false;
             }
@@ -112,14 +105,13 @@ export default function Skyline({
             ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
             ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
             
-            // Store window position for click detection
             windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
           }
           
           windowId++;
         }
       }
-    }
+    });
   }, [lights]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -153,6 +145,7 @@ export default function Skyline({
     <div className="relative w-full overflow-hidden" style={{ height: HEIGHT }}>
       {/* Skyline wrapper */}
       <div
+        ref={containerRef}
         className="absolute bottom-0 left-1/2 -translate-x-1/2"
         style={{ width: CANVAS_WIDTH, height: HEIGHT }}
       >
