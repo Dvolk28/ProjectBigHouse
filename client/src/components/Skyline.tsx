@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 /* ================= CONFIG ================= */
 
@@ -27,12 +27,13 @@ export default function Skyline({
   lights = [],
   onLightClick,
 }: {
-  lights: { windowId: number }[];
+  lights: { windowId: number; name?: string; goal?: string }[];
   onLightClick?: (id: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const windowMapRef = useRef<Map<number, { x: number; y: number; w: number; h: number }>>(new Map());
+  const [hoveredWindow, setHoveredWindow] = useState<{ windowId: number; name?: string; goal?: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -61,11 +62,11 @@ export default function Skyline({
       // Custom window layout for each building type
       if (b.type === "flat" || b.type === "block") {
         // Simple rectangular buildings
-        const cols = Math.floor((b.w * 0.65) / GAP_X);
-        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const cols = Math.floor((b.w * 0.7) / GAP_X);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         const gridWidth = cols * GAP_X;
         const startX = xOffset + (b.w - gridWidth) / 2;
-        const startY = buildingBottom + 20;
+        const startY = buildingBottom + 15;
         
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
@@ -78,23 +79,22 @@ export default function Skyline({
       } else if (b.type === "pyramid") {
         // Pyramid: M50 0 L100 10 L100 100 L0 100 L0 10 Z
         // Starts narrow at top, gets wider toward bottom
-        const rows = Math.floor((b.h * 0.82) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows; // 0 at top, 1 at bottom
-          // Top 10% is tapered, bottom 90% is full width
+          // Top 10% is tapered, then expands
           let widthPercent;
-          if (relativeY < 0.1) {
-            // Tapered top section
-            widthPercent = 0.3 + (relativeY / 0.1) * 0.4; // 30% to 70%
+          if (relativeY < 0.08) {
+            widthPercent = 0.25 + (relativeY / 0.08) * 0.45; // 25% to 70%
           } else {
-            widthPercent = 0.7; // Full width body
+            widthPercent = 0.7;
           }
           
           const rowWidth = b.w * widthPercent;
           const cols = Math.floor(rowWidth / GAP_X);
           const startX = xOffset + (b.w - cols * GAP_X) / 2;
-          const y = buildingBottom + 20 + r * GAP_Y;
+          const y = buildingBottom + 15 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -104,24 +104,27 @@ export default function Skyline({
         }
       } else if (b.type === "spire") {
         // Spire: has narrow top section then wider body
-        const rows = Math.floor((b.h * 0.82) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let widthPercent;
           
-          if (relativeY < 0.15) {
+          if (relativeY < 0.12) {
             // Very narrow spire top
-            widthPercent = 0.2;
+            widthPercent = 0.25;
+          } else if (relativeY < 0.16) {
+            // Transition
+            widthPercent = 0.4;
           } else {
             // Wide body
-            widthPercent = 0.6;
+            widthPercent = 0.65;
           }
           
           const rowWidth = b.w * widthPercent;
           const cols = Math.floor(rowWidth / GAP_X);
           const startX = xOffset + (b.w - cols * GAP_X) / 2;
-          const y = buildingBottom + 20 + r * GAP_Y;
+          const y = buildingBottom + 15 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -132,16 +135,16 @@ export default function Skyline({
       } else if (b.type === "slope-left") {
         // Slope-left: M0 20 L100 0 L100 100 L0 100 Z
         // Top right corner to bottom, left side slopes
-        const rows = Math.floor((b.h * 0.75) / GAP_Y);
+        const rows = Math.floor((b.h * 0.82) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          // Top 20% is sloped off on left
-          const leftMargin = relativeY < 0.25 ? (1 - relativeY / 0.25) * 0.2 : 0;
-          const availableWidth = b.w * (1 - leftMargin) * 0.7;
+          // Top 18% is sloped off on left
+          const leftMargin = relativeY < 0.18 ? (1 - relativeY / 0.18) * 0.18 : 0;
+          const availableWidth = (b.w * (1 - leftMargin)) * 0.75;
           const cols = Math.floor(availableWidth / GAP_X);
-          const startX = xOffset + b.w * leftMargin + 10;
-          const y = buildingBottom + 20 + r * GAP_Y;
+          const startX = xOffset + b.w * leftMargin + 8;
+          const y = buildingBottom + 15 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -152,16 +155,16 @@ export default function Skyline({
       } else if (b.type === "slope-right") {
         // Slope-right: M0 0 L100 20 L100 100 L0 100 Z
         // Top left corner to bottom, right side slopes
-        const rows = Math.floor((b.h * 0.75) / GAP_Y);
+        const rows = Math.floor((b.h * 0.82) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          // Top 20% is sloped off on right
-          const rightMargin = relativeY < 0.25 ? (1 - relativeY / 0.25) * 0.2 : 0;
-          const availableWidth = b.w * (1 - rightMargin) * 0.7;
+          // Top 18% is sloped off on right
+          const rightMargin = relativeY < 0.18 ? (1 - relativeY / 0.18) * 0.18 : 0;
+          const availableWidth = (b.w * (1 - rightMargin)) * 0.75;
           const cols = Math.floor(availableWidth / GAP_X);
-          const startX = xOffset + 10;
-          const y = buildingBottom + 20 + r * GAP_Y;
+          const startX = xOffset + 8;
+          const y = buildingBottom + 15 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -172,24 +175,24 @@ export default function Skyline({
       } else if (b.type === "notch") {
         // Notch: M0 0 L70 0 L70 12 L100 12 L100 100 L0 100 Z
         // Top right has a step/notch
-        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let cols, startX;
           
-          if (relativeY < 0.12) {
+          if (relativeY < 0.10) {
             // Top section with notch - only left 70%
-            cols = Math.floor((b.w * 0.45) / GAP_X);
-            startX = xOffset + 15;
+            cols = Math.floor((b.w * 0.48) / GAP_X);
+            startX = xOffset + 12;
           } else {
             // Full width body
-            cols = Math.floor((b.w * 0.65) / GAP_X);
+            cols = Math.floor((b.w * 0.70) / GAP_X);
             const gridWidth = cols * GAP_X;
             startX = xOffset + (b.w - gridWidth) / 2;
           }
           
-          const y = buildingBottom + 20 + r * GAP_Y;
+          const y = buildingBottom + 15 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -235,6 +238,41 @@ export default function Skyline({
     }
   };
 
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    // Find hovered window
+    for (const [id, bounds] of windowMapRef.current.entries()) {
+      if (
+        x >= bounds.x &&
+        x <= bounds.x + bounds.w &&
+        y >= bounds.y &&
+        y <= bounds.y + bounds.h
+      ) {
+        const lightData = lights.find(l => l.windowId === id);
+        if (lightData && (lightData.name || lightData.goal)) {
+          setHoveredWindow({
+            windowId: id,
+            name: lightData.name,
+            goal: lightData.goal,
+            x: e.clientX,
+            y: e.clientY
+          });
+          return;
+        }
+      }
+    }
+    setHoveredWindow(null);
+  };
+
   return (
     <div className="relative w-full overflow-hidden" style={{ height: HEIGHT }}>
       {/* Skyline wrapper */}
@@ -273,9 +311,29 @@ export default function Skyline({
           width={CANVAS_WIDTH}
           height={HEIGHT}
           onClick={handleCanvasClick}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseLeave={() => setHoveredWindow(null)}
           className="absolute bottom-0 left-0 cursor-pointer"
         />
       </div>
+
+      {/* Tooltip */}
+      {hoveredWindow && (
+        <div
+          className="fixed z-50 bg-slate-800 text-white px-3 py-2 rounded-lg shadow-xl border border-slate-600 pointer-events-none max-w-xs"
+          style={{
+            left: hoveredWindow.x + 15,
+            top: hoveredWindow.y - 60,
+          }}
+        >
+          {hoveredWindow.name && (
+            <div className="font-semibold text-amber-400">{hoveredWindow.name}</div>
+          )}
+          {hoveredWindow.goal && (
+            <div className="text-sm text-slate-300 mt-1">{hoveredWindow.goal}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
