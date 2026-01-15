@@ -103,22 +103,23 @@ export default function Skyline({
           }
         }
       } else if (b.type === "spire") {
-        // Spire: has narrow top section then wider body
-        const rows = Math.floor((b.h * 0.88) / GAP_Y);
+        // Spire: M50 0 L52 3 L56 6 L60 10 L60 16 L76 16 L76 100 L24 100 L24 16 L40 16 L40 10 L44 6 L48 3 Z
+        // Very narrow top spire, then medium section, then wide body
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let widthPercent;
           
-          if (relativeY < 0.12) {
+          if (relativeY < 0.10) {
             // Very narrow spire top
-            widthPercent = 0.25;
+            widthPercent = 0.2;
           } else if (relativeY < 0.16) {
-            // Transition
-            widthPercent = 0.4;
+            // Medium transition section
+            widthPercent = 0.35;
           } else {
-            // Wide body
-            widthPercent = 0.65;
+            // Wide body (but keep within the 24-76 range = 52% of building)
+            widthPercent = 0.52;
           }
           
           const rowWidth = b.w * widthPercent;
@@ -134,59 +135,93 @@ export default function Skyline({
         }
       } else if (b.type === "slope-left") {
         // Slope-left: M0 20 L100 0 L100 100 L0 100 Z
-        // Top right corner to bottom, left side slopes
-        const rows = Math.floor((b.h * 0.82) / GAP_Y);
+        // Starts 20% down on left side, full height on right
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          // Top 18% is sloped off on left
-          const leftMargin = relativeY < 0.18 ? (1 - relativeY / 0.18) * 0.18 : 0;
-          const availableWidth = (b.w * (1 - leftMargin)) * 0.75;
-          const cols = Math.floor(availableWidth / GAP_X);
-          const startX = xOffset + b.w * leftMargin + 8;
-          const y = buildingBottom + 15 + r * GAP_Y;
+          // Left side starts at 20% down, calculate available width
+          const leftCutPercent = 0.2; // Left starts 20% from top
           
-          for (let c = 0; c < cols; c++) {
-            const x = startX + c * GAP_X;
-            renderWindow(ctx, x, y, windowId, lights);
-            windowId++;
+          if (relativeY < leftCutPercent) {
+            // In the sloped section - width increases as we go down
+            const slopeProgress = relativeY / leftCutPercent;
+            const availableWidth = b.w * (0.5 + slopeProgress * 0.25);
+            const cols = Math.floor(availableWidth / GAP_X);
+            const startX = xOffset + b.w * (1 - (0.5 + slopeProgress * 0.25)) + 5;
+            const y = buildingBottom + 15 + r * GAP_Y;
+            
+            for (let c = 0; c < cols; c++) {
+              const x = startX + c * GAP_X;
+              renderWindow(ctx, x, y, windowId, lights);
+              windowId++;
+            }
+          } else {
+            // Full width section
+            const cols = Math.floor((b.w * 0.75) / GAP_X);
+            const gridWidth = cols * GAP_X;
+            const startX = xOffset + (b.w - gridWidth) / 2;
+            const y = buildingBottom + 15 + r * GAP_Y;
+            
+            for (let c = 0; c < cols; c++) {
+              const x = startX + c * GAP_X;
+              renderWindow(ctx, x, y, windowId, lights);
+              windowId++;
+            }
           }
         }
       } else if (b.type === "slope-right") {
         // Slope-right: M0 0 L100 20 L100 100 L0 100 Z
-        // Top left corner to bottom, right side slopes
-        const rows = Math.floor((b.h * 0.82) / GAP_Y);
+        // Full height on left, starts 20% down on right side
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          // Top 18% is sloped off on right
-          const rightMargin = relativeY < 0.18 ? (1 - relativeY / 0.18) * 0.18 : 0;
-          const availableWidth = (b.w * (1 - rightMargin)) * 0.75;
-          const cols = Math.floor(availableWidth / GAP_X);
-          const startX = xOffset + 8;
-          const y = buildingBottom + 15 + r * GAP_Y;
+          const rightCutPercent = 0.2;
           
-          for (let c = 0; c < cols; c++) {
-            const x = startX + c * GAP_X;
-            renderWindow(ctx, x, y, windowId, lights);
-            windowId++;
+          if (relativeY < rightCutPercent) {
+            // In the sloped section
+            const slopeProgress = relativeY / rightCutPercent;
+            const availableWidth = b.w * (0.5 + slopeProgress * 0.25);
+            const cols = Math.floor(availableWidth / GAP_X);
+            const startX = xOffset + 5;
+            const y = buildingBottom + 15 + r * GAP_Y;
+            
+            for (let c = 0; c < cols; c++) {
+              const x = startX + c * GAP_X;
+              renderWindow(ctx, x, y, windowId, lights);
+              windowId++;
+            }
+          } else {
+            // Full width section
+            const cols = Math.floor((b.w * 0.75) / GAP_X);
+            const gridWidth = cols * GAP_X;
+            const startX = xOffset + (b.w - gridWidth) / 2;
+            const y = buildingBottom + 15 + r * GAP_Y;
+            
+            for (let c = 0; c < cols; c++) {
+              const x = startX + c * GAP_X;
+              renderWindow(ctx, x, y, windowId, lights);
+              windowId++;
+            }
           }
         }
       } else if (b.type === "notch") {
         // Notch: M0 0 L70 0 L70 12 L100 12 L100 100 L0 100 Z
-        // Top right has a step/notch
+        // First 70% width at top for 12% of height, then full width
         const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let cols, startX;
           
-          if (relativeY < 0.10) {
-            // Top section with notch - only left 70%
-            cols = Math.floor((b.w * 0.48) / GAP_X);
-            startX = xOffset + 12;
+          if (relativeY < 0.12) {
+            // Top section - only left 70% (from 0 to 70 in viewBox)
+            const topWidth = b.w * 0.7;
+            cols = Math.floor((topWidth * 0.65) / GAP_X);
+            startX = xOffset + 10;
           } else {
-            // Full width body
+            // Full width body (after the notch step)
             cols = Math.floor((b.w * 0.70) / GAP_X);
             const gridWidth = cols * GAP_X;
             startX = xOffset + (b.w - gridWidth) / 2;
