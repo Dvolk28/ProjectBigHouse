@@ -3,7 +3,7 @@ import { useRef, useEffect } from "react";
 /* ================= CONFIG ================= */
 
 const HEIGHT = 600;
-const CANVAS_WIDTH = 1600;
+const CANVAS_WIDTH = 1200;
 
 const WINDOW_SIZE = 8;
 const GAP_X = 12;
@@ -57,9 +57,9 @@ export default function Skyline({
       // Get actual x position relative to container
       const xOffset = rect.left - containerRect.left;
       
-      // Calculate usable area for windows
-      const usableWidth = b.w * 0.85;
-      const usableHeight = b.h * 0.85;
+      // Calculate usable area for windows - keep them safely inside
+      const usableWidth = b.w * 0.75;
+      const usableHeight = b.h * 0.80;
       
       const cols = Math.floor(usableWidth / GAP_X);
       const rows = Math.floor(usableHeight / GAP_Y);
@@ -68,7 +68,7 @@ export default function Skyline({
       const gridWidth = cols * GAP_X;
       const gridHeight = rows * GAP_Y;
       const startX = xOffset + (b.w - gridWidth) / 2;
-      const startY = HEIGHT - b.h + (b.h - gridHeight) / 2 + 5;
+      const startY = HEIGHT - b.h + 20; // Start from bottom, go up
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -76,25 +76,35 @@ export default function Skyline({
           const y = startY + r * GAP_Y;
 
           // Check if window should be rendered based on building shape
-          const relativeY = (y - (HEIGHT - b.h)) / b.h;
-          const relativeX = (x - xOffset) / b.w;
+          const relativeY = (y - (HEIGHT - b.h)) / b.h; // 0 = bottom, 1 = top
+          const relativeX = (x - xOffset) / b.w; // 0 = left, 1 = right
           
           let shouldRender = true;
           
+          // Make sure windows stay within building boundaries
+          if (relativeX < 0.05 || relativeX > 0.95 || relativeY < 0.05 || relativeY > 0.95) {
+            shouldRender = false;
+          }
+          
           // Adjust for building shapes
-          if (b.type === "pyramid") {
-            const widthAtHeight = 1 - (relativeY * 0.45);
+          if (shouldRender && b.type === "pyramid") {
+            // Pyramid gets narrower as it goes up
+            const widthAtHeight = 0.9 - (relativeY * 0.4);
             shouldRender = relativeX > (0.5 - widthAtHeight/2) && relativeX < (0.5 + widthAtHeight/2);
-          } else if (b.type === "slope-left") {
-            shouldRender = relativeX > (relativeY * 0.25);
-          } else if (b.type === "slope-right") {
-            shouldRender = relativeX < (1 - relativeY * 0.25);
-          } else if (b.type === "spire") {
-            if (relativeY < 0.15) {
-              shouldRender = relativeX > 0.4 && relativeX < 0.6;
+          } else if (shouldRender && b.type === "slope-left") {
+            // Cuts off bottom left corner
+            shouldRender = relativeX > (0.2 - relativeY * 0.2);
+          } else if (shouldRender && b.type === "slope-right") {
+            // Cuts off bottom right corner
+            shouldRender = relativeX < (0.8 + relativeY * 0.2);
+          } else if (shouldRender && b.type === "spire") {
+            // Narrow top spire
+            if (relativeY > 0.85) {
+              shouldRender = relativeX > 0.42 && relativeX < 0.58;
             }
-          } else if (b.type === "notch") {
-            if (relativeY < 0.12 && relativeX > 0.68) {
+          } else if (shouldRender && b.type === "notch") {
+            // Notch cut out at top right
+            if (relativeY > 0.88 && relativeX > 0.7) {
               shouldRender = false;
             }
           }
