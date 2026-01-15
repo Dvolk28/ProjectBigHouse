@@ -3,7 +3,7 @@ import { useRef, useEffect } from "react";
 /* ================= CONFIG ================= */
 
 const HEIGHT = 600;
-const CANVAS_WIDTH = 1400;
+const CANVAS_WIDTH = 1600;
 
 const WINDOW_SIZE = 8;
 const GAP_X = 12;
@@ -58,8 +58,8 @@ export default function Skyline({
       const xOffset = rect.left - containerRect.left;
       
       // Calculate usable area for windows
-      const usableWidth = b.w * 0.7;
-      const usableHeight = b.h * 0.8;
+      const usableWidth = b.w * 0.85;
+      const usableHeight = b.h * 0.85;
       
       const cols = Math.floor(usableWidth / GAP_X);
       const rows = Math.floor(usableHeight / GAP_Y);
@@ -68,7 +68,7 @@ export default function Skyline({
       const gridWidth = cols * GAP_X;
       const gridHeight = rows * GAP_Y;
       const startX = xOffset + (b.w - gridWidth) / 2;
-      const startY = HEIGHT - b.h + (b.h - gridHeight) / 2;
+      const startY = HEIGHT - b.h + (b.h - gridHeight) / 2 + 5;
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -83,18 +83,18 @@ export default function Skyline({
           
           // Adjust for building shapes
           if (b.type === "pyramid") {
-            const widthAtHeight = 1 - (relativeY * 0.3);
+            const widthAtHeight = 1 - (relativeY * 0.45);
             shouldRender = relativeX > (0.5 - widthAtHeight/2) && relativeX < (0.5 + widthAtHeight/2);
           } else if (b.type === "slope-left") {
-            shouldRender = relativeX > (relativeY * 0.2);
+            shouldRender = relativeX > (relativeY * 0.25);
           } else if (b.type === "slope-right") {
-            shouldRender = relativeX < (1 - relativeY * 0.2);
+            shouldRender = relativeX < (1 - relativeY * 0.25);
           } else if (b.type === "spire") {
-            if (relativeY < 0.2) {
-              shouldRender = relativeX > 0.35 && relativeX < 0.65;
+            if (relativeY < 0.15) {
+              shouldRender = relativeX > 0.4 && relativeX < 0.6;
             }
           } else if (b.type === "notch") {
-            if (relativeY < 0.15 && relativeX > 0.7) {
+            if (relativeY < 0.12 && relativeX > 0.68) {
               shouldRender = false;
             }
           }
