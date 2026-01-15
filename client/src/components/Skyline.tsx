@@ -49,12 +49,14 @@ export default function Skyline({
 
     for (const b of BUILDINGS) {
       const cols = Math.floor((b.w - EDGE * 2) / GAP_X);
-      const rows = Math.floor((b.h - 60) / GAP_Y);
+      const rows = Math.floor((b.h - 50) / GAP_Y);
+      
+      const startY = HEIGHT - b.h + 25;
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const x = xOffset + EDGE + c * GAP_X;
-          const y = HEIGHT - b.h + 30 + r * GAP_Y;
+          const y = startY + r * GAP_Y;
 
           const lit = lights.some((l) => l.windowId === windowId);
 
