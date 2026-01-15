@@ -43,10 +43,22 @@ export default function Skyline({
     ctx.clearRect(0, 0, CANVAS_WIDTH, HEIGHT);
     windowMapRef.current.clear();
 
-    let xOffset = 40;
+    const buildingGap = 20; // gap-5 = 1.25rem = 20px
     let windowId = 1;
 
+    // Calculate starting position for each building
+    let buildingPositions = [];
+    let xPos = 40; // Initial left offset
+    
     for (const b of BUILDINGS) {
+      buildingPositions.push(xPos);
+      xPos += b.w + buildingGap;
+    }
+
+    for (let buildingIndex = 0; buildingIndex < BUILDINGS.length; buildingIndex++) {
+      const b = BUILDINGS[buildingIndex];
+      const xOffset = buildingPositions[buildingIndex];
+      
       // Calculate usable area for windows
       const usableWidth = b.w * 0.7; // 70% of building width
       const usableHeight = b.h * 0.8; // 80% of building height
@@ -107,8 +119,6 @@ export default function Skyline({
           windowId++;
         }
       }
-
-      xOffset += b.w + 20;
     }
   }, [lights]);
 
