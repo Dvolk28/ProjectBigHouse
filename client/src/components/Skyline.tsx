@@ -56,73 +56,153 @@ export default function Skyline({
       
       // Get actual x position relative to container
       const xOffset = rect.left - containerRect.left;
+      const buildingBottom = HEIGHT - b.h;
       
-      // Calculate usable area for windows - keep them safely inside
-      const usableWidth = b.w * 0.75;
-      const usableHeight = b.h * 0.80;
-      
-      const cols = Math.floor(usableWidth / GAP_X);
-      const rows = Math.floor(usableHeight / GAP_Y);
-      
-      // Center the window grid within the building
-      const gridWidth = cols * GAP_X;
-      const gridHeight = rows * GAP_Y;
-      const startX = xOffset + (b.w - gridWidth) / 2;
-      const startY = HEIGHT - b.h + 20; // Start from bottom, go up
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const x = startX + c * GAP_X;
-          const y = startY + r * GAP_Y;
-
-          // Check if window should be rendered based on building shape
-          const relativeY = (y - (HEIGHT - b.h)) / b.h; // 0 = bottom, 1 = top
-          const relativeX = (x - xOffset) / b.w; // 0 = left, 1 = right
+      // Custom window layout for each building type
+      if (b.type === "flat") {
+        // Simple rectangular building
+        const cols = Math.floor((b.w * 0.7) / GAP_X);
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const startX = xOffset + (b.w * 0.15);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
+        }
+      } else if (b.type === "block") {
+        // Simple rectangular building
+        const cols = Math.floor((b.w * 0.7) / GAP_X);
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const startX = xOffset + (b.w * 0.15);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
+        }
+      } else if (b.type === "pyramid") {
+        // Pyramid - gets narrower toward top
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          const relativeY = r / rows; // 0 at bottom, 1 at top
+          const widthAtRow = b.w * (0.9 - relativeY * 0.5); // Narrows as goes up
+          const cols = Math.floor((widthAtRow * 0.7) / GAP_X);
+          const startX = xOffset + (b.w - cols * GAP_X) / 2;
           
-          let shouldRender = true;
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
+        }
+      } else if (b.type === "spire") {
+        // Spire with narrow top section
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          const relativeY = r / rows;
+          let cols;
           
-          // Make sure windows stay within building boundaries
-          if (relativeX < 0.05 || relativeX > 0.95 || relativeY < 0.05 || relativeY > 0.95) {
-            shouldRender = false;
+          if (relativeY > 0.85) {
+            // Top spire - very narrow
+            cols = Math.floor((b.w * 0.25) / GAP_X);
+          } else {
+            // Main body
+            cols = Math.floor((b.w * 0.65) / GAP_X);
           }
           
-          // Adjust for building shapes
-          if (shouldRender && b.type === "pyramid") {
-            // Pyramid gets narrower as it goes up
-            const widthAtHeight = 0.9 - (relativeY * 0.4);
-            shouldRender = relativeX > (0.5 - widthAtHeight/2) && relativeX < (0.5 + widthAtHeight/2);
-          } else if (shouldRender && b.type === "slope-left") {
-            // Cuts off bottom left corner
-            shouldRender = relativeX > (0.2 - relativeY * 0.2);
-          } else if (shouldRender && b.type === "slope-right") {
-            // Cuts off bottom right corner
-            shouldRender = relativeX < (0.8 + relativeY * 0.2);
-          } else if (shouldRender && b.type === "spire") {
-            // Narrow top spire
-            if (relativeY > 0.85) {
-              shouldRender = relativeX > 0.42 && relativeX < 0.58;
-            }
-          } else if (shouldRender && b.type === "notch") {
-            // Notch cut out at top right
-            if (relativeY > 0.88 && relativeX > 0.7) {
-              shouldRender = false;
-            }
+          const startX = xOffset + (b.w - cols * GAP_X) / 2;
+          
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
           }
-
-          if (shouldRender) {
-            const lit = lights.some((l) => l.windowId === windowId);
-
-            ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
-            ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
-            
-            windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
+        }
+      } else if (b.type === "slope-left") {
+        // Slopes from right side down to left
+        const rows = Math.floor((b.h * 0.8) / GAP_Y);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          const relativeY = r / rows;
+          const leftCutoff = (1 - relativeY) * 0.2; // More cut off at bottom
+          const availableWidth = b.w * (1 - leftCutoff);
+          const cols = Math.floor((availableWidth * 0.7) / GAP_X);
+          const startX = xOffset + b.w * leftCutoff + 10;
+          
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
+        }
+      } else if (b.type === "slope-right") {
+        // Slopes from left side down to right
+        const rows = Math.floor((b.h * 0.8) / GAP_Y);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          const relativeY = r / rows;
+          const rightCutoff = (1 - relativeY) * 0.2; // More cut off at bottom
+          const availableWidth = b.w * (1 - rightCutoff);
+          const cols = Math.floor((availableWidth * 0.7) / GAP_X);
+          const startX = xOffset + 10;
+          
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
+        }
+      } else if (b.type === "notch") {
+        // Building with notch cut out at top right
+        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const startY = buildingBottom + 25;
+        
+        for (let r = 0; r < rows; r++) {
+          const relativeY = r / rows;
+          let cols = Math.floor((b.w * 0.7) / GAP_X);
+          let startX = xOffset + (b.w * 0.15);
+          
+          // Remove windows in notch area (top right)
+          if (relativeY > 0.88) {
+            cols = Math.floor((b.w * 0.5) / GAP_X); // Shorter row
           }
           
-          windowId++;
+          for (let c = 0; c < cols; c++) {
+            const x = startX + c * GAP_X;
+            const y = startY + r * GAP_Y;
+            renderWindow(ctx, x, y, windowId, lights);
+            windowId++;
+          }
         }
       }
     });
   }, [lights]);
+
+  function renderWindow(ctx: CanvasRenderingContext2D, x: number, y: number, id: number, lights: { windowId: number }[]) {
+    const lit = lights.some((l) => l.windowId === id);
+    ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
+    ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
+    windowMapRef.current.set(id, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
+  }
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onLightClick) return;
