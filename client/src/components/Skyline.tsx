@@ -8,7 +8,6 @@ const CANVAS_WIDTH = 1400;
 const WINDOW_SIZE = 8;
 const GAP_X = 12;
 const GAP_Y = 12;
-const EDGE = 20;
 
 // Simplified building set matching the first design
 const BUILDINGS = [
@@ -48,23 +47,62 @@ export default function Skyline({
     let windowId = 1;
 
     for (const b of BUILDINGS) {
-      const cols = Math.floor((b.w - EDGE * 2) / GAP_X);
-      const rows = Math.floor((b.h - 50) / GAP_Y);
+      // Calculate usable area for windows
+      const usableWidth = b.w * 0.7; // 70% of building width
+      const usableHeight = b.h * 0.8; // 80% of building height
       
-      const startY = HEIGHT - b.h + 25;
+      const cols = Math.floor(usableWidth / GAP_X);
+      const rows = Math.floor(usableHeight / GAP_Y);
+      
+      // Center the window grid within the building
+      const gridWidth = cols * GAP_X;
+      const gridHeight = rows * GAP_Y;
+      const startX = xOffset + (b.w - gridWidth) / 2;
+      const startY = HEIGHT - b.h + (b.h - gridHeight) / 2;
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const x = xOffset + EDGE + c * GAP_X;
+          const x = startX + c * GAP_X;
           const y = startY + r * GAP_Y;
 
-          const lit = lights.some((l) => l.windowId === windowId);
-
-          ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
-          ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
+          // Check if window should be rendered based on building shape
+          const relativeY = (y - (HEIGHT - b.h)) / b.h; // 0 to 1 from bottom to top
+          const relativeX = (x - xOffset) / b.w; // 0 to 1 from left to right
           
-          // Store window position for click detection
-          windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
+          let shouldRender = true;
+          
+          // Adjust for building shapes
+          if (b.type === "pyramid") {
+            // Pyramid narrows as it goes up
+            const widthAtHeight = 1 - (relativeY * 0.3);
+            shouldRender = relativeX > (0.5 - widthAtHeight/2) && relativeX < (0.5 + widthAtHeight/2);
+          } else if (b.type === "slope-left") {
+            // Slopes from right down to left
+            shouldRender = relativeX > (relativeY * 0.2);
+          } else if (b.type === "slope-right") {
+            // Slopes from left down to right
+            shouldRender = relativeX < (1 - relativeY * 0.2);
+          } else if (b.type === "spire") {
+            // Narrow top section
+            if (relativeY < 0.2) {
+              shouldRender = relativeX > 0.35 && relativeX < 0.65;
+            }
+          } else if (b.type === "notch") {
+            // Has a notch at top right
+            if (relativeY < 0.15 && relativeX > 0.7) {
+              shouldRender = false;
+            }
+          }
+
+          if (shouldRender) {
+            const lit = lights.some((l) => l.windowId === windowId);
+
+            ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
+            ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
+            
+            // Store window position for click detection
+            windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
+          }
           
           windowId++;
         }
