@@ -32,6 +32,7 @@ export default function Skyline({
   onLightClick?: (id: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const windowMapRef = useRef<Map<number, { x: number; y: number; w: number; h: number }>>(new Map());
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,6 +42,7 @@ export default function Skyline({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, CANVAS_WIDTH, HEIGHT);
+    windowMapRef.current.clear();
 
     let xOffset = 40;
     let windowId = 1;
@@ -52,12 +54,15 @@ export default function Skyline({
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const x = xOffset + EDGE + c * GAP_X;
-          const y = HEIGHT - (r + 1) * GAP_Y - 8;
+          const y = HEIGHT - b.h + 20 + r * GAP_Y;
 
           const lit = lights.some((l) => l.windowId === windowId);
 
           ctx.fillStyle = lit ? "#fbbf24" : "rgba(100,116,139,0.3)";
           ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
+          
+          // Store window position for click detection
+          windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
           
           windowId++;
         }
@@ -67,30 +72,43 @@ export default function Skyline({
     }
   }, [lights]);
 
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onLightClick) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    // Find clicked window
+    for (const [id, bounds] of windowMapRef.current.entries()) {
+      if (
+        x >= bounds.x &&
+        x <= bounds.x + bounds.w &&
+        y >= bounds.y &&
+        y <= bounds.y + bounds.h
+      ) {
+        onLightClick(id);
+        break;
+      }
+    }
+  };
+
   return (
     <div className="relative w-full overflow-hidden" style={{ height: HEIGHT }}>
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-900 to-slate-800" />
-      
-      {/* Stars */}
-      <div className="absolute inset-0">
-        {[...Array(40)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full opacity-50"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 50}%`,
-            }}
-          />
-        ))}
-      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-900 to-slate-950" />
       
       {/* Glow */}
       <div
         className="absolute inset-0"
         style={{
-          background: "radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.12) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at 50% 100%, rgba(169,112,255,0.10) 0%, transparent 65%)",
         }}
       />
 
@@ -99,15 +117,7 @@ export default function Skyline({
         className="absolute bottom-0 left-1/2 -translate-x-1/2"
         style={{ width: CANVAS_WIDTH, height: HEIGHT }}
       >
-        {/* Windows */}
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={HEIGHT}
-          className="absolute bottom-0 left-0 pointer-events-none"
-        />
-
-        {/* Buildings */}
+        {/* Buildings - behind windows */}
         <div className="absolute bottom-0 left-0 flex items-end gap-5">
           {BUILDINGS.map((b, i) => (
             <svg
@@ -119,19 +129,26 @@ export default function Skyline({
             >
               <defs>
                 <linearGradient id={`g-${i}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#374151" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#0f172a" />
+                  <stop offset="0%" stopColor="#1e293b" />
+                  <stop offset="100%" stopColor="#020617" />
                 </linearGradient>
               </defs>
               <path 
                 d={getSvgPath(b.type)} 
-                fill={`url(#g-${i})`} 
-                stroke="#1e293b" 
-                strokeWidth="0.5" 
+                fill={`url(#g-${i})`}
               />
             </svg>
           ))}
         </div>
+
+        {/* Windows - on top and clickable */}
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_WIDTH}
+          height={HEIGHT}
+          onClick={handleCanvasClick}
+          className="absolute bottom-0 left-0 cursor-pointer"
+        />
       </div>
     </div>
   );
