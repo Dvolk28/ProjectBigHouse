@@ -62,11 +62,11 @@ export default function Skyline({
       // Custom window layout for each building type
       if (b.type === "flat" || b.type === "block") {
         // Simple rectangular buildings
-        const cols = Math.floor((b.w * 0.7) / GAP_X);
-        const rows = Math.floor((b.h * 0.88) / GAP_Y);
+        const cols = Math.floor((b.w * 0.72) / GAP_X);
+        const rows = Math.floor((b.h * 0.90) / GAP_Y);
         const gridWidth = cols * GAP_X;
         const startX = xOffset + (b.w - gridWidth) / 2;
-        const startY = buildingBottom + 15;
+        const startY = buildingBottom + 12;
         
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
@@ -79,22 +79,22 @@ export default function Skyline({
       } else if (b.type === "pyramid") {
         // Pyramid: M50 0 L100 10 L100 100 L0 100 L0 10 Z
         // Starts narrow at top, gets wider toward bottom
-        const rows = Math.floor((b.h * 0.88) / GAP_Y);
+        const rows = Math.floor((b.h * 0.90) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows; // 0 at top, 1 at bottom
-          // Top 10% is tapered, then expands
+          // Top 8% is tapered, then expands
           let widthPercent;
           if (relativeY < 0.08) {
-            widthPercent = 0.25 + (relativeY / 0.08) * 0.45; // 25% to 70%
+            widthPercent = 0.25 + (relativeY / 0.08) * 0.48; // 25% to 73%
           } else {
-            widthPercent = 0.7;
+            widthPercent = 0.73;
           }
           
           const rowWidth = b.w * widthPercent;
           const cols = Math.floor(rowWidth / GAP_X);
           const startX = xOffset + (b.w - cols * GAP_X) / 2;
-          const y = buildingBottom + 15 + r * GAP_Y;
+          const y = buildingBottom + 12 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -105,27 +105,27 @@ export default function Skyline({
       } else if (b.type === "spire") {
         // Spire: M50 0 L52 3 L56 6 L60 10 L60 16 L76 16 L76 100 L24 100 L24 16 L40 16 L40 10 L44 6 L48 3 Z
         // Very narrow top spire, then medium section, then wide body
-        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let widthPercent;
           
-          if (relativeY < 0.10) {
+          if (relativeY < 0.08) {
             // Very narrow spire top
-            widthPercent = 0.2;
-          } else if (relativeY < 0.16) {
+            widthPercent = 0.18;
+          } else if (relativeY < 0.14) {
             // Medium transition section
-            widthPercent = 0.35;
+            widthPercent = 0.32;
           } else {
-            // Wide body (but keep within the 24-76 range = 52% of building)
-            widthPercent = 0.52;
+            // Wide body (24-76 in viewBox = 52% of 100)
+            widthPercent = 0.50;
           }
           
           const rowWidth = b.w * widthPercent;
           const cols = Math.floor(rowWidth / GAP_X);
           const startX = xOffset + (b.w - cols * GAP_X) / 2;
-          const y = buildingBottom + 15 + r * GAP_Y;
+          const y = buildingBottom + 12 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
@@ -136,20 +136,19 @@ export default function Skyline({
       } else if (b.type === "slope-left") {
         // Slope-left: M0 20 L100 0 L100 100 L0 100 Z
         // Starts 20% down on left side, full height on right
-        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          // Left side starts at 20% down, calculate available width
-          const leftCutPercent = 0.2; // Left starts 20% from top
+          const leftCutPercent = 0.20;
           
           if (relativeY < leftCutPercent) {
-            // In the sloped section - width increases as we go down
+            // In the sloped section
             const slopeProgress = relativeY / leftCutPercent;
-            const availableWidth = b.w * (0.5 + slopeProgress * 0.25);
+            const availableWidth = b.w * (0.45 + slopeProgress * 0.30);
             const cols = Math.floor(availableWidth / GAP_X);
-            const startX = xOffset + b.w * (1 - (0.5 + slopeProgress * 0.25)) + 5;
-            const y = buildingBottom + 15 + r * GAP_Y;
+            const startX = xOffset + b.w * (1 - (0.45 + slopeProgress * 0.30)) + 3;
+            const y = buildingBottom + 12 + r * GAP_Y;
             
             for (let c = 0; c < cols; c++) {
               const x = startX + c * GAP_X;
@@ -161,7 +160,7 @@ export default function Skyline({
             const cols = Math.floor((b.w * 0.75) / GAP_X);
             const gridWidth = cols * GAP_X;
             const startX = xOffset + (b.w - gridWidth) / 2;
-            const y = buildingBottom + 15 + r * GAP_Y;
+            const y = buildingBottom + 12 + r * GAP_Y;
             
             for (let c = 0; c < cols; c++) {
               const x = startX + c * GAP_X;
@@ -173,19 +172,19 @@ export default function Skyline({
       } else if (b.type === "slope-right") {
         // Slope-right: M0 0 L100 20 L100 100 L0 100 Z
         // Full height on left, starts 20% down on right side
-        const rows = Math.floor((b.h * 0.85) / GAP_Y);
+        const rows = Math.floor((b.h * 0.88) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
-          const rightCutPercent = 0.2;
+          const rightCutPercent = 0.20;
           
           if (relativeY < rightCutPercent) {
             // In the sloped section
             const slopeProgress = relativeY / rightCutPercent;
-            const availableWidth = b.w * (0.5 + slopeProgress * 0.25);
+            const availableWidth = b.w * (0.45 + slopeProgress * 0.30);
             const cols = Math.floor(availableWidth / GAP_X);
-            const startX = xOffset + 5;
-            const y = buildingBottom + 15 + r * GAP_Y;
+            const startX = xOffset + 3;
+            const y = buildingBottom + 12 + r * GAP_Y;
             
             for (let c = 0; c < cols; c++) {
               const x = startX + c * GAP_X;
@@ -197,7 +196,7 @@ export default function Skyline({
             const cols = Math.floor((b.w * 0.75) / GAP_X);
             const gridWidth = cols * GAP_X;
             const startX = xOffset + (b.w - gridWidth) / 2;
-            const y = buildingBottom + 15 + r * GAP_Y;
+            const y = buildingBottom + 12 + r * GAP_Y;
             
             for (let c = 0; c < cols; c++) {
               const x = startX + c * GAP_X;
@@ -209,25 +208,25 @@ export default function Skyline({
       } else if (b.type === "notch") {
         // Notch: M0 0 L70 0 L70 12 L100 12 L100 100 L0 100 Z
         // First 70% width at top for 12% of height, then full width
-        const rows = Math.floor((b.h * 0.88) / GAP_Y);
+        const rows = Math.floor((b.h * 0.90) / GAP_Y);
         
         for (let r = 0; r < rows; r++) {
           const relativeY = r / rows;
           let cols, startX;
           
           if (relativeY < 0.12) {
-            // Top section - only left 70% (from 0 to 70 in viewBox)
-            const topWidth = b.w * 0.7;
-            cols = Math.floor((topWidth * 0.65) / GAP_X);
-            startX = xOffset + 10;
+            // Top section - only left 70%
+            const topWidth = b.w * 0.70;
+            cols = Math.floor((topWidth * 0.68) / GAP_X);
+            startX = xOffset + 8;
           } else {
-            // Full width body (after the notch step)
-            cols = Math.floor((b.w * 0.70) / GAP_X);
+            // Full width body
+            cols = Math.floor((b.w * 0.72) / GAP_X);
             const gridWidth = cols * GAP_X;
             startX = xOffset + (b.w - gridWidth) / 2;
           }
           
-          const y = buildingBottom + 15 + r * GAP_Y;
+          const y = buildingBottom + 12 + r * GAP_Y;
           
           for (let c = 0; c < cols; c++) {
             const x = startX + c * GAP_X;
