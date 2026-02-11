@@ -10,7 +10,7 @@ type Light = {
   id: number;
   windowId: number;
   name: string;
-  message: string;
+  goal: string;
   color: string;
 };
 
