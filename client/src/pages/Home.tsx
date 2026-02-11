@@ -6,18 +6,18 @@ import { useToast } from "@/hooks/use-toast";
 import Skyline from "@/components/Skyline";
 
 type Light = {
-  id: number;
   windowId: number;
   name: string;
-  message: string;
+  goal: string;
   color: string;
+  timestamp: string;
 };
 
 export default function Home() {
   const { toast } = useToast();
   const [activeWindowId, setActiveWindowId] = useState<number | null>(null);
   const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
+  const [goal, setGoal] = useState("");
 
   const { data: lights = [] } = useQuery<Light[]>({ 
     queryKey: ["/api/lights"] 
@@ -34,7 +34,7 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/lights"] });
       toast({ title: "Success!", description: "You have lit up a window!" });
       setName("");
-      setMessage("");
+      setGoal("");
       setActiveWindowId(null);
     },
     onError: () => {
@@ -60,25 +60,7 @@ export default function Home() {
             </h1>
           </div>
           <div className="text-xs text-neutral-500 font-mono">
-            CLE • 41.4993° N, 81.6944° W
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-grow pt-32 pb-0 px-4 flex flex-col items-center relative">
-        
-        <div className="max-w-7xl w-full mx-auto text-center mb-8 space-y-4 z-20">
-          <h2 className="text-4xl md:text-6xl font-light tracking-tight text-white drop-shadow-lg">
-            Light Your Mark
-          </h2>
-          <p className="text-purple-200/80 max-w-lg mx-auto text-lg font-light">
-            Claim a window on the Cleveland skyline. 
-            <span className="block text-yellow-400 mt-2 font-medium">
-              {lights.length} / {totalWindows.toLocaleString()} windows illuminated.
-            </span>
-          </p>
-        </div>
+@@ -82,53 +82,53 @@ export default function Home() {
 
         <div className="w-full h-[600px] flex items-end justify-center relative z-10 overflow-hidden">
            <Skyline lights={lights || []} onLightClick={handleLightClick} />
@@ -104,8 +86,8 @@ export default function Home() {
                 <textarea 
                   className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
                   placeholder="What is your dream?"
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
+                  value={goal}
+                  onChange={e => setGoal(e.target.value)}
                 />
               </div>
 
@@ -117,8 +99,8 @@ export default function Home() {
                   Cancel
                 </button>
                 <button 
-                  onClick={() => mutation.mutate({ windowId: activeWindowId, name, message, color: "yellow" })}
-                  disabled={mutation.isPending || !name}
+                  onClick={() => mutation.mutate({ windowId: activeWindowId, name, goal, color: "yellow" })}
+                  disabled={mutation.isPending || !name || goal.length < 10}
                   className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50 transition-colors"
                 >
                   {mutation.isPending ? "Saving..." : "Illuminate"}
