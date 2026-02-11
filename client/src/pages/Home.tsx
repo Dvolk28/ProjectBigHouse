@@ -66,7 +66,7 @@ export default function Home() {
            <Skyline lights={lights || []} onLightClick={handleLightClick} />
         </div>
 
-        {activeWindowId !== null && (
+}activeWindowId !== null && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-neutral-900 border border-purple-500/30 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl shadow-purple-900/20 animate-in fade-in zoom-in duration-300">
               <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId}</h3>
