@@ -87,7 +87,7 @@ export default function Home() {
 
         <div
           ref={skylineSectionRef}
-          className="w-full h-[600px] px-4 flex items-end justify-center relative z-10 overflow-hidden"
+          className="w-full h-[600px] -mt-20 px-4 flex items-end justify-center relative z-10 overflow-hidden"
         >
           <Skyline lights={lights} onLightClick={handleLightClick} />
         </div>
