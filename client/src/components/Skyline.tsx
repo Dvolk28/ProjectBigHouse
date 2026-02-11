@@ -3,21 +3,23 @@ import { useRef, useEffect, useState } from "react";
 const HEIGHT = 600;
 const CANVAS_WIDTH = 1200;
 
-const WINDOW_SIZE = 8;
-const GAP_X = 12;
-const GAP_Y = 12;
-const WINDOW_PADDING = 10;
+const WINDOW_SIZE = 7;
+const GAP_X = 11;
+const GAP_Y = 11;
+const WINDOW_PADDING = 8;
 
 type BuildingShape =
-  | "crown"
-  | "needle"
-  | "terrace"
+  | "terminal-tower"
+  | "key-tower"
+  | "public-square"
+  | "erieview"
+  | "huntington"
+  | "fed-classic"
   | "angled-left"
-  | "angled-right"
-  | "setback"
-  | "spire";
+  | "angled-right";
 
 type BuildingDefinition = {
+  name: string;
   shape: BuildingShape;
   w: number;
   h: number;
@@ -29,20 +31,20 @@ type LightData = { windowId: number; name?: string; message?: string; goal?: str
 type WindowBounds = { x: number; y: number; w: number; h: number };
 
 const BUILDINGS: BuildingDefinition[] = [
-  { shape: "angled-right", w: 100, h: 180, x: 18, depth: "back" },
-  { shape: "setback", w: 116, h: 250, x: 106, depth: "back" },
-  { shape: "needle", w: 72, h: 350, x: 224, depth: "mid" },
-  { shape: "terrace", w: 132, h: 280, x: 308, depth: "mid" },
-  { shape: "crown", w: 152, h: 470, x: 454, depth: "front" },
-  { shape: "spire", w: 126, h: 390, x: 628, depth: "front" },
-  { shape: "angled-left", w: 124, h: 250, x: 766, depth: "mid" },
-  { shape: "setback", w: 138, h: 330, x: 900, depth: "front" },
-  { shape: "terrace", w: 118, h: 220, x: 1048, depth: "back" },
+  { name: "Flats West", shape: "angled-right", w: 110, h: 155, x: 0, depth: "back" },
+  { name: "55 Public Square", shape: "fed-classic", w: 112, h: 215, x: 100, depth: "mid" },
+  { name: "Huntington", shape: "huntington", w: 102, h: 320, x: 206, depth: "front" },
+  { name: "Federal Reserve", shape: "public-square", w: 144, h: 270, x: 296, depth: "mid" },
+  { name: "Key Tower", shape: "key-tower", w: 170, h: 500, x: 430, depth: "front" },
+  { name: "Terminal Tower", shape: "terminal-tower", w: 145, h: 430, x: 615, depth: "front" },
+  { name: "Erieview", shape: "erieview", w: 124, h: 345, x: 778, depth: "mid" },
+  { name: "North Coast", shape: "angled-left", w: 148, h: 240, x: 892, depth: "back" },
+  { name: "Public Square East", shape: "public-square", w: 156, h: 305, x: 1034, depth: "mid" },
 ];
 
 const depthOpacity: Record<BuildingDefinition["depth"], number> = {
-  back: 0.62,
-  mid: 0.8,
+  back: 0.58,
+  mid: 0.76,
   front: 1,
 };
 
@@ -80,10 +82,7 @@ export default function Skyline({
 
       for (let y = top + WINDOW_PADDING; y <= bottom - WINDOW_SIZE - WINDOW_PADDING; y += GAP_Y) {
         for (let x = left + WINDOW_PADDING; x <= right - WINDOW_SIZE - WINDOW_PADDING; x += GAP_X) {
-          const centerX = x + WINDOW_SIZE / 2;
-          const centerY = y + WINDOW_SIZE / 2;
-
-          if (!ctx.isPointInPath(buildingPath, centerX, centerY)) {
+          if (!isWindowWithinPath(ctx, buildingPath, x, y)) {
             continue;
           }
 
@@ -110,20 +109,20 @@ export default function Skyline({
         1,
         x + WINDOW_SIZE / 2,
         y + WINDOW_SIZE / 2,
-        WINDOW_SIZE * 2.2,
+        WINDOW_SIZE * 2.4,
       );
-      glow.addColorStop(0, "rgba(251, 191, 36, 0.9)");
+      glow.addColorStop(0, "rgba(251, 191, 36, 0.92)");
       glow.addColorStop(1, "rgba(251, 191, 36, 0)");
       ctx.fillStyle = glow;
       ctx.fillRect(x - WINDOW_SIZE, y - WINDOW_SIZE, WINDOW_SIZE * 3, WINDOW_SIZE * 3);
     }
 
-    ctx.fillStyle = lit ? "#fbbf24" : "rgba(148, 163, 184, 0.3)";
+    ctx.fillStyle = lit ? "#fbbf24" : "rgba(148, 163, 184, 0.32)";
     ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
 
     if (hovered) {
       ctx.strokeStyle = "rgba(250, 204, 21, 0.95)";
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.1;
       ctx.strokeRect(x - 1, y - 1, WINDOW_SIZE + 2, WINDOW_SIZE + 2);
     }
   }
@@ -146,9 +145,7 @@ export default function Skyline({
     let hitWindowId: number | null = null;
 
     windowMapRef.current.forEach((bounds, id) => {
-      if (hitWindowId) {
-        return;
-      }
+      if (hitWindowId) return;
 
       if (x >= bounds.x && x <= bounds.x + bounds.w && y >= bounds.y && y <= bounds.y + bounds.h) {
         hitWindowId = id;
@@ -174,8 +171,7 @@ export default function Skyline({
     const point = getCanvasCoordinates(e);
     if (!point) return;
 
-    const hitWindowId = getWindowAtPosition(point.x, point.y);
-    setHoveredWindowId(hitWindowId);
+@@ -179,144 +176,159 @@ export default function Skyline({
 
     if (!hitWindowId) {
       setHoveredWindow(null);
@@ -201,15 +197,15 @@ export default function Skyline({
   return (
     <div className="relative w-full overflow-hidden" style={{ height: HEIGHT }}>
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(167,139,250,0.25),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(79,70,229,0.22),transparent_40%),linear-gradient(to_bottom,rgba(49,46,129,0.45),rgba(2,6,23,0.95))]" />
-        <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle,rgba(255,255,255,0.65)_1px,transparent_1.4px)] [background-size:140px_140px]" />
-        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle,rgba(196,181,253,0.8)_1px,transparent_1.3px)] [background-size:220px_220px] [background-position:60px_30px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(167,139,250,0.22),transparent_36%),radial-gradient(circle_at_78%_18%,rgba(59,130,246,0.2),transparent_34%),linear-gradient(to_bottom,rgba(10,10,15,0)_0%,rgba(28,25,74,0.55)_34%,rgba(2,6,23,0.96)_100%)]" />
+        <div className="absolute inset-0 opacity-55 bg-[radial-gradient(circle,rgba(226,232,240,0.72)_1px,transparent_1.4px)] [background-size:150px_150px]" />
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,rgba(196,181,253,0.85)_1px,transparent_1.2px)] [background-size:235px_235px] [background-position:40px_24px]" />
       </div>
 
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2" style={{ width: CANVAS_WIDTH, height: HEIGHT }}>
         {BUILDINGS.map((building, i) => (
           <svg
-            key={`${building.shape}-${i}`}
+            key={`${building.name}-${i}`}
             width={building.w}
             height={building.h}
             viewBox="0 0 100 100"
@@ -220,7 +216,7 @@ export default function Skyline({
             <defs>
               <linearGradient id={`g-${i}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#334155" />
-                <stop offset="40%" stopColor="#1e1b4b" />
+                <stop offset="42%" stopColor="#1e1b4b" />
                 <stop offset="100%" stopColor="#020617" />
               </linearGradient>
             </defs>
@@ -259,22 +255,35 @@ export default function Skyline({
   );
 }
 
+function isWindowWithinPath(ctx: CanvasRenderingContext2D, buildingPath: Path2D, x: number, y: number) {
+  const corners: [number, number][] = [
+    [x + 0.5, y + 0.5],
+    [x + WINDOW_SIZE - 0.5, y + 0.5],
+    [x + 0.5, y + WINDOW_SIZE - 0.5],
+    [x + WINDOW_SIZE - 0.5, y + WINDOW_SIZE - 0.5],
+  ];
+
+  return corners.every(([cx, cy]) => ctx.isPointInPath(buildingPath, cx, cy));
+}
+
 function getSvgPath(shape: BuildingShape) {
   switch (shape) {
-    case "crown":
-      return "M0 12 L20 12 L30 2 L50 0 L70 2 L80 12 L100 12 L100 100 L0 100 Z";
-    case "needle":
-      return "M45 0 L55 0 L58 8 L64 16 L64 24 L78 24 L78 100 L22 100 L22 24 L36 24 L36 16 L42 8 Z";
-    case "terrace":
-      return "M0 18 L26 18 L26 10 L48 10 L48 4 L72 4 L72 10 L100 10 L100 100 L0 100 Z";
+    case "terminal-tower":
+      return "M28 100 L28 20 L40 20 L40 12 L46 12 L46 6 L50 0 L54 6 L54 12 L60 12 L60 20 L72 20 L72 100 Z";
+    case "key-tower":
+      return "M12 100 L12 16 L30 16 L36 0 L64 0 L70 16 L88 16 L88 100 Z";
+    case "public-square":
+      return "M10 100 L10 12 L30 12 L30 6 L70 6 L70 12 L90 12 L90 100 Z";
+    case "erieview":
+      return "M16 100 L16 14 L40 14 L40 6 L60 6 L60 14 L84 14 L84 100 Z";
+    case "huntington":
+      return "M30 100 L30 16 L40 16 L40 8 L47 8 L47 4 L50 0 L53 4 L53 8 L60 8 L60 16 L70 16 L70 100 Z";
+    case "fed-classic":
+      return "M8 100 L8 18 L24 18 L24 10 L42 10 L42 4 L58 4 L58 10 L76 10 L76 18 L92 18 L92 100 Z";
     case "angled-left":
-      return "M0 24 L100 6 L100 100 L0 100 Z";
+      return "M10 100 L10 22 L90 6 L90 100 Z";
     case "angled-right":
-      return "M0 8 L100 24 L100 100 L0 100 Z";
-    case "setback":
-      return "M0 14 L18 14 L18 7 L42 7 L42 0 L72 0 L72 7 L100 7 L100 100 L0 100 Z";
-    case "spire":
-      return "M50 0 L54 6 L62 12 L62 20 L76 20 L76 100 L24 100 L24 20 L38 20 L38 12 L46 6 Z";
+      return "M10 100 L10 8 L90 24 L90 100 Z";
     default:
       return "M0 0 L100 0 L100 100 L0 100 Z";
   }
@@ -282,20 +291,22 @@ function getSvgPath(shape: BuildingShape) {
 
 function getShapePoints(shape: BuildingShape): [number, number][] {
   switch (shape) {
-    case "crown":
-      return [[0, 12], [20, 12], [30, 2], [50, 0], [70, 2], [80, 12], [100, 12], [100, 100], [0, 100]];
-    case "needle":
-      return [[45, 0], [55, 0], [58, 8], [64, 16], [64, 24], [78, 24], [78, 100], [22, 100], [22, 24], [36, 24], [36, 16], [42, 8]];
-    case "terrace":
-      return [[0, 18], [26, 18], [26, 10], [48, 10], [48, 4], [72, 4], [72, 10], [100, 10], [100, 100], [0, 100]];
+    case "terminal-tower":
+      return [[28, 100], [28, 20], [40, 20], [40, 12], [46, 12], [46, 6], [50, 0], [54, 6], [54, 12], [60, 12], [60, 20], [72, 20], [72, 100]];
+    case "key-tower":
+      return [[12, 100], [12, 16], [30, 16], [36, 0], [64, 0], [70, 16], [88, 16], [88, 100]];
+    case "public-square":
+      return [[10, 100], [10, 12], [30, 12], [30, 6], [70, 6], [70, 12], [90, 12], [90, 100]];
+    case "erieview":
+      return [[16, 100], [16, 14], [40, 14], [40, 6], [60, 6], [60, 14], [84, 14], [84, 100]];
+    case "huntington":
+      return [[30, 100], [30, 16], [40, 16], [40, 8], [47, 8], [47, 4], [50, 0], [53, 4], [53, 8], [60, 8], [60, 16], [70, 16], [70, 100]];
+    case "fed-classic":
+      return [[8, 100], [8, 18], [24, 18], [24, 10], [42, 10], [42, 4], [58, 4], [58, 10], [76, 10], [76, 18], [92, 18], [92, 100]];
     case "angled-left":
-      return [[0, 24], [100, 6], [100, 100], [0, 100]];
+      return [[10, 100], [10, 22], [90, 6], [90, 100]];
     case "angled-right":
-      return [[0, 8], [100, 24], [100, 100], [0, 100]];
-    case "setback":
-      return [[0, 14], [18, 14], [18, 7], [42, 7], [42, 0], [72, 0], [72, 7], [100, 7], [100, 100], [0, 100]];
-    case "spire":
-      return [[50, 0], [54, 6], [62, 12], [62, 20], [76, 20], [76, 100], [24, 100], [24, 20], [38, 20], [38, 12], [46, 6]];
+      return [[10, 100], [10, 8], [90, 24], [90, 100]];
     default:
       return [[0, 0], [100, 0], [100, 100], [0, 100]];
   }
