@@ -9,14 +9,14 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onAddLightClick, litCount, totalCount }: HeroSectionProps) {
   return (
-    <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 text-center">
+   <section className="relative min-h-[90vh] pb-20 flex flex-col items-center justify-center px-4 text-center">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: "radial-gradient(ellipse at 50% 30%, rgba(169, 112, 255, 0.1) 0%, transparent 50%)",
         }}
       />
-      <div className="relative z-10 max-w-4xl mx-auto">
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent via-[#16132f]/35 to-[#0f1020]/80 pointer-events-none" />
         <h1
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
           style={{
