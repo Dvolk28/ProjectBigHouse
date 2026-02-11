@@ -1,9 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { illuminateBuildingSchema } from "@shared/schema";
+import { createIlluminationSchema, illuminateBuildingSchema, type IlluminationRecord } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromError } from "zod-validation-error";
+
+const lights: IlluminationRecord[] = [];
 
 export async function registerRoutes(
   httpServer: Server,
@@ -30,17 +32,7 @@ export async function registerRoutes(
       const data = illuminateBuildingSchema.parse(req.body);
       
       // Get all unlit buildings
-      const unlitBuildings = await storage.getUnlitBuildings();
-      
-      if (unlitBuildings.length === 0) {
-        return res.status(400).json({ 
-          message: "All buildings are currently illuminated" 
-        });
-      }
-      
-      // Pick a random unlit building
-      const randomIndex = Math.floor(Math.random() * unlitBuildings.length);
-      const selectedBuilding = unlitBuildings[randomIndex];
+@@ -44,50 +46,75 @@ export async function registerRoutes(
       
       // Illuminate the building
       const illuminatedBuilding = await storage.illuminateBuilding(
@@ -63,6 +55,31 @@ export async function registerRoutes(
       }
       console.error("Error illuminating building:", error);
       res.status(500).json({ message: "Failed to illuminate building" });
+    }
+  });
+
+  app.get("/api/lights", async (_req, res) => {
+    res.json(lights);
+  });
+
+  app.post("/api/lights", async (req, res) => {
+    try {
+      const parsed = createIlluminationSchema.parse(req.body);
+      const newLight: IlluminationRecord = {
+        ...parsed,
+        timestamp: new Date().toISOString(),
+      };
+
+      lights.push(newLight);
+      res.status(201).json(newLight);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+
+      console.error("Error saving light:", error);
+      res.status(500).json({ message: "Failed to save light" });
     }
   });
 
@@ -91,7 +108,3 @@ export async function registerRoutes(
       console.error("Error resetting skyline:", error);
       res.status(500).json({ message: "Failed to reset skyline" });
     }
-  });
-
-  return httpServer;
-}
