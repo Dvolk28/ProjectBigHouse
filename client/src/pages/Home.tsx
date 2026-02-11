@@ -136,11 +136,11 @@ export default function Home() {
                     mutation.mutate({
                       windowId: activeWindowId,
                       name,
-                      message,
+                                    goal: message,
                       color: "yellow",
                     })
                   }
-                  disabled={mutation.isPending || !name || message.length < 5}
+                  disabled={mutation.isPending || !name || message.length < 10}
                   className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50 transition-colors"
                 >
                   {mutation.isPending ? "Saving..." : "Illuminate"}
