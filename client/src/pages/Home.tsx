@@ -21,8 +21,8 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const skylineSectionRef = useRef<HTMLDivElement>(null);
 
-  const { data: lights = [] } = useQuery<Light[]>({ 
-    queryKey: ["/api/lights"] 
+  const { data: lights = [] } = useQuery<Light[]>({
+    queryKey: ["/api/lights"],
   });
 
   const totalWindows = 5000;
@@ -40,8 +40,12 @@ export default function Home() {
       setActiveWindowId(null);
     },
     onError: () => {
-      toast({ title: "Error", description: "Could not save your light yet.", variant: "destructive" });
-    }
+      toast({
+        title: "Error",
+        description: "Could not save your light yet.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleLightClick = (id: number) => {
@@ -49,17 +53,19 @@ export default function Home() {
   };
 
   const handleAddLightClick = () => {
-    skylineSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    skylineSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans selection:bg-yellow-500/30 flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans flex flex-col overflow-x-hidden">
       
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* UPDATED: Purple Pulse Dot */}
             <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
             <h1 className="text-sm font-medium tracking-widest uppercase text-neutral-400">
               Project Skyline
@@ -71,8 +77,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-grow pt-16 pb-0 flex flex-col items-center relative">
+      {/* MAIN */}
+      <main className="flex-grow pt-16 flex flex-col items-center relative">
         <HeroSection
           onAddLightClick={handleAddLightClick}
           litCount={lights.length}
@@ -83,28 +89,67 @@ export default function Home() {
           ref={skylineSectionRef}
           className="w-full h-[600px] px-4 flex items-end justify-center relative z-10 overflow-hidden"
         >
-           <Skyline lights={lights || []} onLightClick={handleLightClick} />
+          <Skyline lights={lights} onLightClick={handleLightClick} />
         </div>
 
+        {/* MODAL */}
         {activeWindowId !== null && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-neutral-900 border border-purple-500/30 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl shadow-purple-900/20 animate-in fade-in zoom-in duration-300">
-              <h3 className="text-xl text-white font-light">Illuminate Window #{activeWindowId}</h3>
-              
+              <h3 className="text-xl text-white font-light">
+                Illuminate Window #{activeWindowId}
+              </h3>
+
               <div className="space-y-2">
-                <label className="text-xs uppercase text-neutral-500">Your Name</label>
-                <input 
+                <label className="text-xs uppercase text-neutral-500">
+                  Your Name
+                </label>
+                <input
                   className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500"
                   placeholder="Enter your name"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase text-neutral-500">Your Ambition</label>
-                <textarea 
+                <label className="text-xs uppercase text-neutral-500">
+                  Your Ambition
+                </label>
+                <textarea
                   className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
                   placeholder="What is your dream?"
                   value={message}
-                  onChange={e => setMessage(e.target.value)}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setActiveWindowId(null)}
+                  className="flex-1 py-2 rounded border border-white/10 text-neutral-400 hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    mutation.mutate({
+                      windowId: activeWindowId,
+                      name,
+                      message,
+                      color: "yellow",
+                    })
+                  }
+                  disabled={mutation.isPending || !name || message.length < 5}
+                  className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50 transition-colors"
+                >
+                  {mutation.isPending ? "Saving..." : "Illuminate"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
