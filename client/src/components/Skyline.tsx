@@ -27,8 +27,7 @@ export default function Skyline({
   lights = [],
   onLightClick,
 }: {
-  lights: { windowId: number; name?: string; goal?: string }[];
-  onLightClick?: (id: number) => void;
+lights: { windowId: number; name?: string; goal?: string; color?: string; timestamp?: string }[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
