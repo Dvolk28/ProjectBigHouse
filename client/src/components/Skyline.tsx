@@ -6,6 +6,7 @@ const CANVAS_WIDTH = 1200;
 const WINDOW_SIZE = 8;
 const GAP_X = 12;
 const GAP_Y = 12;
+const WINDOW_PADDING = 10;
 
 type BuildingShape =
   | "crown"
@@ -23,6 +24,9 @@ type BuildingDefinition = {
   x: number;
   depth: "back" | "mid" | "front";
 };
+
+type LightData = { windowId: number; name?: string; message?: string; goal?: string };
+type WindowBounds = { x: number; y: number; w: number; h: number };
 
 const BUILDINGS: BuildingDefinition[] = [
   { shape: "angled-right", w: 100, h: 180, x: 18, depth: "back" },
@@ -46,12 +50,13 @@ export default function Skyline({
   lights = [],
   onLightClick,
 }: {
-  lights: { windowId: number; name?: string; message?: string; goal?: string }[];
+  lights: LightData[];
   onLightClick?: (id: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const windowMapRef = useRef<Map<number, { x: number; y: number; w: number; h: number }>>(new Map());
+  const windowMapRef = useRef<Map<number, WindowBounds>>(new Map());
   const [hoveredWindow, setHoveredWindow] = useState<{ windowId: number; name?: string; text?: string; x: number; y: number } | null>(null);
+  const [hoveredWindowId, setHoveredWindowId] = useState<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,92 +68,134 @@ export default function Skyline({
     ctx.clearRect(0, 0, CANVAS_WIDTH, HEIGHT);
     windowMapRef.current.clear();
 
+    const litWindowIds = new Set(lights.map((light) => light.windowId));
+
     let windowId = 1;
+    for (const building of BUILDINGS) {
+      const buildingPath = createBuildingPath(building);
+      const top = HEIGHT - building.h;
+      const left = building.x;
+      const bottom = HEIGHT;
+      const right = building.x + building.w;
 
-    BUILDINGS.forEach((building) => {
-      const rows = Math.floor((building.h * 0.88) / GAP_Y);
+      for (let y = top + WINDOW_PADDING; y <= bottom - WINDOW_SIZE - WINDOW_PADDING; y += GAP_Y) {
+        for (let x = left + WINDOW_PADDING; x <= right - WINDOW_SIZE - WINDOW_PADDING; x += GAP_X) {
+          const centerX = x + WINDOW_SIZE / 2;
+          const centerY = y + WINDOW_SIZE / 2;
 
-      for (let r = 0; r < rows; r++) {
-        const rowRatio = rows > 1 ? r / (rows - 1) : 0;
-        const rowConfig = getRowWindowConfig(building, rowRatio);
-        const cols = Math.max(0, Math.floor((building.w * rowConfig.widthPercent) / GAP_X));
+          if (!ctx.isPointInPath(buildingPath, centerX, centerY)) {
+            continue;
+          }
 
-        if (!cols) {
-          continue;
-        }
-
-        const gridWidth = cols * GAP_X;
-        const startX = building.x + ((building.w - gridWidth) / 2) + (building.w * rowConfig.shiftPercent);
-        const y = HEIGHT - building.h + 10 + r * GAP_Y;
-
-        for (let c = 0; c < cols; c++) {
-          const x = startX + c * GAP_X;
-          renderWindow(ctx, x, y, windowId, lights);
+          const isHovered = hoveredWindowId === windowId;
+          renderWindow(ctx, x, y, litWindowIds.has(windowId), isHovered);
+          windowMapRef.current.set(windowId, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
           windowId++;
         }
       }
-    });
-  }, [lights]);
+    }
+  }, [lights, hoveredWindowId]);
 
-  function renderWindow(ctx: CanvasRenderingContext2D, x: number, y: number, id: number, lightsData: { windowId: number }[]) {
-    const lit = lightsData.some((l) => l.windowId === id);
+  function renderWindow(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    lit: boolean,
+    hovered: boolean,
+  ) {
+    if (lit) {
+      const glow = ctx.createRadialGradient(
+        x + WINDOW_SIZE / 2,
+        y + WINDOW_SIZE / 2,
+        1,
+        x + WINDOW_SIZE / 2,
+        y + WINDOW_SIZE / 2,
+        WINDOW_SIZE * 2.2,
+      );
+      glow.addColorStop(0, "rgba(251, 191, 36, 0.9)");
+      glow.addColorStop(1, "rgba(251, 191, 36, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - WINDOW_SIZE, y - WINDOW_SIZE, WINDOW_SIZE * 3, WINDOW_SIZE * 3);
+    }
+
     ctx.fillStyle = lit ? "#fbbf24" : "rgba(148, 163, 184, 0.3)";
     ctx.fillRect(x, y, WINDOW_SIZE, WINDOW_SIZE);
-    windowMapRef.current.set(id, { x, y, w: WINDOW_SIZE, h: WINDOW_SIZE });
+
+    if (hovered) {
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.95)";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(x - 1, y - 1, WINDOW_SIZE + 2, WINDOW_SIZE + 2);
+    }
   }
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const getWindowAtPosition = (x: number, y: number) => {
+    let hitWindowId: number | null = null;
+
+    windowMapRef.current.forEach((bounds, id) => {
+      if (hitWindowId) {
+        return;
+      }
+
+      if (x >= bounds.x && x <= bounds.x + bounds.w && y >= bounds.y && y <= bounds.y + bounds.h) {
+        hitWindowId = id;
+      }
+    });
+
+    return hitWindowId;
+  };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onLightClick) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    windowMapRef.current.forEach((bounds, id) => {
-      if (x >= bounds.x && x <= bounds.x + bounds.w && y >= bounds.y && y <= bounds.y + bounds.h) {
-        onLightClick(id);
-      }
-    });
+    const hitWindowId = getWindowAtPosition(point.x, point.y);
+    if (hitWindowId) {
+      onLightClick(hitWindowId);
+    }
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const hitWindowId = getWindowAtPosition(point.x, point.y);
+    setHoveredWindowId(hitWindowId);
 
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    if (!hitWindowId) {
+      setHoveredWindow(null);
+      return;
+    }
 
-    let hovered: { windowId: number; name?: string; text?: string; x: number; y: number } | null = null;
+    const lightData = lights.find((light) => light.windowId === hitWindowId);
+    const text = lightData?.goal ?? lightData?.message;
 
-    windowMapRef.current.forEach((bounds, id) => {
-      if (hovered || x < bounds.x || x > bounds.x + bounds.w || y < bounds.y || y > bounds.y + bounds.h) {
-        return;
-      }
-
-      const lightData = lights.find((l) => l.windowId === id);
-      const text = lightData?.message ?? lightData?.goal;
-      if (lightData && (lightData.name || text)) {
-        hovered = {
-          windowId: id,
-          name: lightData.name,
-          text,
-          x: e.clientX,
-          y: e.clientY,
-        };
-      }
-    });
-
-    setHoveredWindow(hovered);
+    if (lightData && (lightData.name || text)) {
+      setHoveredWindow({
+        windowId: hitWindowId,
+        name: lightData.name,
+        text,
+        x: e.clientX,
+        y: e.clientY,
+      });
+    } else {
+      setHoveredWindow(null);
+    }
   };
 
   return (
@@ -187,21 +234,25 @@ export default function Skyline({
           height={HEIGHT}
           onClick={handleCanvasClick}
           onMouseMove={handleCanvasMouseMove}
-          onMouseLeave={() => setHoveredWindow(null)}
+          onMouseLeave={() => {
+            setHoveredWindow(null);
+            setHoveredWindowId(null);
+          }}
           className="absolute bottom-0 left-0 cursor-pointer"
         />
       </div>
 
       {hoveredWindow && (
         <div
-          className="fixed z-50 bg-slate-900/95 text-white px-3 py-2 rounded-lg shadow-xl border border-indigo-400/40 pointer-events-none max-w-xs"
+          className="fixed z-50 px-7 py-5 rounded-2xl pointer-events-none max-w-xs min-w-[220px] border border-yellow-300/65 bg-slate-950/95 shadow-[0_0_30px_rgba(250,204,21,0.28)] text-center"
           style={{
-            left: hoveredWindow.x + 15,
-            top: hoveredWindow.y - 60,
+            left: hoveredWindow.x + 14,
+            top: hoveredWindow.y - 96,
           }}
         >
-          {hoveredWindow.name && <div className="font-semibold text-amber-300">{hoveredWindow.name}</div>}
-          {hoveredWindow.text && <div className="text-sm text-slate-200 mt-1">{hoveredWindow.text}</div>}
+          {hoveredWindow.name && <div className="text-3xl font-semibold text-white leading-none">{hoveredWindow.name}</div>}
+          {hoveredWindow.text && <div className="text-3xl italic text-yellow-300 mt-3 leading-tight">“{hoveredWindow.text}”</div>}
+          <div className="mx-auto mt-4 h-3 w-3 rounded-sm bg-yellow-300 shadow-[0_0_12px_rgba(250,204,21,0.95)]" />
         </div>
       )}
     </div>
@@ -229,48 +280,43 @@ function getSvgPath(shape: BuildingShape) {
   }
 }
 
-function getRowWindowConfig(building: BuildingDefinition, rowRatio: number) {
-  switch (building.shape) {
-    case "crown": {
-      if (rowRatio < 0.08) return { widthPercent: 0.32, shiftPercent: 0 };
-      if (rowRatio < 0.16) return { widthPercent: 0.46, shiftPercent: 0 };
-      return { widthPercent: 0.74, shiftPercent: 0 };
-    }
-    case "needle": {
-      if (rowRatio < 0.1) return { widthPercent: 0.2, shiftPercent: 0 };
-      if (rowRatio < 0.18) return { widthPercent: 0.36, shiftPercent: 0 };
-      return { widthPercent: 0.5, shiftPercent: 0 };
-    }
-    case "terrace": {
-      if (rowRatio < 0.06) return { widthPercent: 0.42, shiftPercent: -0.08 };
-      if (rowRatio < 0.12) return { widthPercent: 0.58, shiftPercent: -0.04 };
-      return { widthPercent: 0.72, shiftPercent: 0 };
-    }
-    case "angled-left": {
-      if (rowRatio < 0.22) {
-        const t = rowRatio / 0.22;
-        return { widthPercent: 0.42 + t * 0.24, shiftPercent: 0.18 - t * 0.14 };
-      }
-      return { widthPercent: 0.72, shiftPercent: 0 };
-    }
-    case "angled-right": {
-      if (rowRatio < 0.22) {
-        const t = rowRatio / 0.22;
-        return { widthPercent: 0.42 + t * 0.24, shiftPercent: -0.18 + t * 0.14 };
-      }
-      return { widthPercent: 0.72, shiftPercent: 0 };
-    }
-    case "setback": {
-      if (rowRatio < 0.07) return { widthPercent: 0.4, shiftPercent: -0.05 };
-      if (rowRatio < 0.14) return { widthPercent: 0.55, shiftPercent: -0.02 };
-      return { widthPercent: 0.72, shiftPercent: 0 };
-    }
-    case "spire": {
-      if (rowRatio < 0.08) return { widthPercent: 0.2, shiftPercent: 0 };
-      if (rowRatio < 0.15) return { widthPercent: 0.34, shiftPercent: 0 };
-      return { widthPercent: 0.54, shiftPercent: 0 };
-    }
+function getShapePoints(shape: BuildingShape): [number, number][] {
+  switch (shape) {
+    case "crown":
+      return [[0, 12], [20, 12], [30, 2], [50, 0], [70, 2], [80, 12], [100, 12], [100, 100], [0, 100]];
+    case "needle":
+      return [[45, 0], [55, 0], [58, 8], [64, 16], [64, 24], [78, 24], [78, 100], [22, 100], [22, 24], [36, 24], [36, 16], [42, 8]];
+    case "terrace":
+      return [[0, 18], [26, 18], [26, 10], [48, 10], [48, 4], [72, 4], [72, 10], [100, 10], [100, 100], [0, 100]];
+    case "angled-left":
+      return [[0, 24], [100, 6], [100, 100], [0, 100]];
+    case "angled-right":
+      return [[0, 8], [100, 24], [100, 100], [0, 100]];
+    case "setback":
+      return [[0, 14], [18, 14], [18, 7], [42, 7], [42, 0], [72, 0], [72, 7], [100, 7], [100, 100], [0, 100]];
+    case "spire":
+      return [[50, 0], [54, 6], [62, 12], [62, 20], [76, 20], [76, 100], [24, 100], [24, 20], [38, 20], [38, 12], [46, 6]];
     default:
-      return { widthPercent: 0.7, shiftPercent: 0 };
+      return [[0, 0], [100, 0], [100, 100], [0, 100]];
   }
+}
+
+function createBuildingPath(building: BuildingDefinition) {
+  const points = getShapePoints(building.shape);
+  const path = new Path2D();
+
+  points.forEach(([px, py], index) => {
+    const x = building.x + (px / 100) * building.w;
+    const y = HEIGHT - building.h + (py / 100) * building.h;
+
+    if (index === 0) {
+      path.moveTo(x, y);
+      return;
+    }
+
+    path.lineTo(x, y);
+  });
+
+  path.closePath();
+  return path;
 }
