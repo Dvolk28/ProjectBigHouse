@@ -19,11 +19,11 @@ export type User = typeof users.$inferSelect;
 
 export const illuminations = pgTable("illuminations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  windowId: integer("window_id").notNull(), // The unique number for each window (0-4999)
+  windowId: integer("window_id").notNull(),
   name: text("name").notNull(),
   goal: text("goal").notNull(),
   color: text("color").notNull().default("yellow"),
-  timestamp: text("timestamp").default(sql`CURRENT_TIMESTAMP`),
+  timestamp: text("timestamp").notNull(),
 });
 
 export const insertIlluminationSchema = createInsertSchema(illuminations).omit({
@@ -37,8 +37,8 @@ export const illuminationRecordSchema = z.object({
   windowId: z.number().int().min(1).max(5000),
   name: z.string().min(2).max(50),
   goal: z.string().min(10).max(200),
-  color: z.string().min(1).default("yellow"),
-  timestamp: z.string(),
+  color: z.string().min(1).max(50).default("yellow"),
+  timestamp: z.string().datetime({ offset: true }),
 });
 
 export const createIlluminationSchema = illuminationRecordSchema.omit({
