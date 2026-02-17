@@ -1,11 +1,10 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
-import { createIlluminationSchema, illuminateBuildingSchema, type IlluminationRecord } from "@shared/schema";
+import { createIlluminationSchema, illuminateBuildingSchema, illuminationRecordSchema, illuminations } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromError } from "zod-validation-error";
-
-const lights: IlluminationRecord[] = [];
+import { db } from "./db";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -52,19 +51,35 @@ export async function registerRoutes(
   });
 
   app.get("/api/lights", async (_req, res) => {
-    res.json(lights);
+    try {
+      const rows = await db.select().from(illuminations);
+      const lights = rows.map(({ id: _id, ...light }) =>
+        illuminationRecordSchema.parse(light),
+      );
+      res.json(lights);
+    } catch (error) {
+      console.error("Error fetching lights:", error);
+      res.status(500).json({ message: "Failed to fetch lights" });
+    }
   });
 
   app.post("/api/lights", async (req, res) => {
     try {
       const parsed = createIlluminationSchema.parse(req.body);
-      const newLight: IlluminationRecord = {
+      const newLight = {
         ...parsed,
         timestamp: new Date().toISOString(),
       };
 
-      lights.push(newLight);
-      res.status(201).json(newLight);
+      const [savedLight] = await db
+        .insert(illuminations)
+        .values(newLight)
+        .returning();
+
+      const { id: _id, ...lightPayload } = savedLight;
+      const validatedLight = illuminationRecordSchema.parse(lightPayload);
+
+      res.status(201).json(validatedLight);
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromError(error);
@@ -94,7 +109,7 @@ export async function registerRoutes(
   app.post("/api/reset", async (_req, res) => {
     try {
       await storage.resetLights();
-      lights.length = 0;
+      await db.delete(illuminations);
       res.json({ message: "Skyline reset successfully" });
     } catch (error) {
       console.error("Error resetting skyline:", error);
