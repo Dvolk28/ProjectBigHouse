@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +23,7 @@ type Building = {
   width: number;
   height: number;
   color?: string;
-  crown?: "pyramid" | "antenna" | "step";
+  crown?: "pyramid" | "antenna" | "step" | "terminal-spire";
 };
 
 const WINDOW_SIZE = 5;
@@ -36,9 +35,9 @@ const BASE_HEIGHT = 455;
 const BUILDINGS: Building[] = [
   { id: "shoreway", name: "North Coast", x: 96, width: 90, height: 132, color: "#151a33", crown: "step" },
   { id: "weston", name: "Weston", x: 204, width: 58, height: 150, color: "#161b34" },
-  { id: "key-tower", name: "Key Tower", x: 286, width: 118, height: 330, crown: "pyramid", color: "#1a1f3a" },
-  { id: "terminal-tower", name: "Terminal Tower", x: 426, width: 88, height: 260, crown: "step", color: "#1d2140" },
-  { id: "200-public", name: "200 Public Square", x: 536, width: 100, height: 292, crown: "step", color: "#1b203b" },
+  { id: "key-tower", name: "Key Tower", x: 286, width: 108, height: 296, crown: "pyramid", color: "#1a1f3a" },
+  { id: "terminal-tower", name: "Terminal Tower", x: 410, width: 118, height: 284, crown: "terminal-spire", color: "#1e2341" },
+  { id: "200-public", name: "200 Public Square", x: 548, width: 94, height: 276, crown: "step", color: "#1b203b" },
   { id: "bp-tower", name: "BP Tower", x: 662, width: 66, height: 248, crown: "antenna", color: "#1a1f39" },
   { id: "justice-center", name: "Justice Center", x: 748, width: 138, height: 206, color: "#171c35" },
   { id: "one-cleveland", name: "One Cleveland", x: 914, width: 72, height: 228, color: "#181d36" },
@@ -64,14 +63,7 @@ function renderCrown(building: Building) {
           width={18}
           height={12}
           fill="#242a46"
-        />
-        <rect
-          x={building.width / 2 - 1}
-          y={BASE_HEIGHT - building.height - 48}
-          width={2}
-          height={36}
-          fill="#5f6693"
-        />
+@@ -75,87 +75,135 @@ function renderCrown(building: Building) {
       </g>
     );
   }
@@ -97,6 +89,53 @@ function renderCrown(building: Building) {
     );
   }
 
+  if (building.crown === "terminal-spire") {
+    const top = BASE_HEIGHT - building.height;
+    const center = building.width / 2;
+
+    return (
+      <g>
+        <rect
+          x={building.width * 0.16}
+          y={top - 16}
+          width={building.width * 0.68}
+          height={16}
+          fill="#272d4c"
+        />
+        <rect
+          x={building.width * 0.28}
+          y={top - 34}
+          width={building.width * 0.44}
+          height={18}
+          fill="#2b3252"
+        />
+        <rect
+          x={building.width * 0.39}
+          y={top - 52}
+          width={building.width * 0.22}
+          height={18}
+          fill="#31395e"
+        />
+        <circle
+          cx={center}
+          cy={top - 43}
+          r={6}
+          fill="none"
+          stroke="#6c73a4"
+          strokeWidth={1.4}
+          opacity={0.95}
+        />
+        <rect
+          x={center - 1.2}
+          y={top - 88}
+          width={2.4}
+          height={36}
+          fill="#7a81b0"
+        />
+      </g>
+    );
+  }
+
   return null;
 }
 
@@ -110,8 +149,8 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
     <div
       className="relative w-full overflow-hidden"
       style={{
-        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 16%, black 100%)",
-        maskImage: "linear-gradient(to bottom, transparent 0%, black 16%, black 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
+        maskImage: "linear-gradient(to bottom, transparent 0%, black 22%, black 100%)",
       }}
     >
       <TooltipProvider delayDuration={120}>
@@ -127,13 +166,14 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
               <stop offset="100%" stopColor="#080a18" stopOpacity="0" />
             </radialGradient>
             <linearGradient id="cityMist" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#9d6bff" stopOpacity="0.03" />
-              <stop offset="100%" stopColor="#090b1a" stopOpacity="0" />
+              <stop offset="0%" stopColor="#9d6bff" stopOpacity="0" />
+              <stop offset="45%" stopColor="#332152" stopOpacity="0.03" />
+              <stop offset="100%" stopColor="#090b1a" stopOpacity="0.16" />
             </linearGradient>
           </defs>
 
-          <rect width="1200" height="520" fill="url(#cleSkyGlow)" />
-          <rect width="1200" height="520" fill="url(#cityMist)" />
+          <ellipse cx="610" cy="150" rx="560" ry="220" fill="url(#cleSkyGlow)" opacity="0.4" />
+          <rect x="0" y="0" width="1200" height="520" fill="url(#cityMist)" />
 
           {/* Foreground skyline */}
           <g>
@@ -159,57 +199,3 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
 
                   <rect
                     x={0}
-                    y={bodyTop}
-                    width={building.width}
-                    height={building.height}
-                    fill={building.color ?? "#1a1d34"}
-                    rx={2}
-                  />
-
-                  {windows.map((windowObj) => {
-                    const light = lightByWindowId.get(windowObj.id);
-                    const isLit = Boolean(light);
-
-                    const windowRect = (
-                      <rect
-                        key={windowObj.id}
-                        x={windowObj.x}
-                        y={windowObj.y}
-                        width={WINDOW_SIZE}
-                        height={WINDOW_SIZE}
-                        fill={isLit ? "#c084fc" : "#2a2e4a"}
-                        stroke={isLit ? "#f0abfc" : "#4e5580"}
-                        strokeWidth={0.8}
-                        className="cursor-pointer transition-all duration-150 hover:fill-[#8b5cf6] hover:stroke-[#d8b4fe]"
-                        rx={1}
-                        onClick={() => onLightClick(windowObj.id)}
-                      />
-                    );
-
-                    if (!isLit || !light) {
-                      return windowRect;
-                    }
-
-                    return (
-                      <Tooltip key={windowObj.id}>
-                        <TooltipTrigger asChild>{windowRect}</TooltipTrigger>
-                        <TooltipContent className="max-w-64 border-purple-300/30 bg-neutral-900 text-white">
-                          <p className="text-xs text-purple-300">{light.name}</p>
-                          <p className="text-sm">{light.goal}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Horizon and water */}
-          <rect x="0" y="455" width="1200" height="3" fill="#181c35" />
-          <rect x="0" y="458" width="1200" height="62" fill="#090c1c" opacity="0.85" />
-        </svg>
-      </TooltipProvider>
-    </div>
-  );
-}
