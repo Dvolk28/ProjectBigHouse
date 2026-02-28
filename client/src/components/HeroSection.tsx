@@ -24,8 +24,14 @@ export default function HeroSection({
         }}
       />
 
-      {/* Bottom Gradient */}
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent via-[#16132f]/35 to-[#0f1020]/80 pointer-events-none" />
+      {/* Bottom Blend */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-52 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(80% 120% at 50% 100%, rgba(130, 88, 224, 0.18) 0%, rgba(24, 19, 54, 0.08) 45%, rgba(9, 11, 25, 0) 78%)",
+        }}
+      />
 
       {/* Content */}
       <h1
