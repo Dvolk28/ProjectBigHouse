@@ -87,7 +87,7 @@ export default function Home() {
 
         <div
           ref={skylineSectionRef}
-          className="w-full h-[600px] -mt-20 px-4 flex items-end justify-center relative z-10 overflow-hidden"
+          className="w-full h-[620px] -mt-32 flex items-end justify-center relative z-10 overflow-hidden"
         >
           <Skyline lights={lights} onLightClick={handleLightClick} />
         </div>
@@ -97,8 +97,9 @@ export default function Home() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-neutral-900 border border-purple-500/30 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl shadow-purple-900/20 animate-in fade-in zoom-in duration-300">
               <h3 className="text-xl text-white font-light">
-                Illuminate Window {activeWindowId}
+                Illuminate Window
               </h3>
+
 
               <div className="space-y-2">
                 <label className="text-xs uppercase text-neutral-500">
