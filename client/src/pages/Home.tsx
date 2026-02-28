@@ -5,48 +5,35 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Skyline from "@/components/Skyline";
 import HeroSection from "@/components/HeroSection";
-import {
-  createIlluminationSchema,
-  illuminationRecordListSchema,
-  skylineStatsSchema,
-  type CreateIlluminationInput,
-} from "@shared/schema";
+
+type Light = {
+  id: number;
+  windowId: string;
+  name: string;
+  goal: string;
+  color: string;
+};
 
 export default function Home() {
   const { toast } = useToast();
-  const [activeWindowId, setActiveWindowId] = useState<number | null>(null);
+  const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const skylineSectionRef = useRef<HTMLDivElement>(null);
 
-  const { data: lights = [] } = useQuery({
+  const { data: lights = [] } = useQuery<Light[]>({
     queryKey: ["/api/lights"],
-    queryFn: async () => {
-      const res = await fetch("/api/lights", { credentials: "include" });
-      const json = await res.json();
-      return illuminationRecordListSchema.parse(json);
-    },
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["/api/stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/stats", { credentials: "include" });
-      const json = await res.json();
-      return skylineStatsSchema.parse(json);
-    },
-  });
+  const totalWindows = 5000;
 
   const mutation = useMutation({
-    mutationFn: async (newLight: CreateIlluminationInput) => {
-      const payload = createIlluminationSchema.parse(newLight);
-      const res = await apiRequest("POST", "/api/lights", payload);
-      const json = await res.json();
-      return illuminationRecordListSchema.element.parse(json);
+    mutationFn: async (newLight: any) => {
+      const res = await apiRequest("POST", "/api/lights", newLight);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lights"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Success!", description: "You have lit up a window!" });
       setName("");
       setMessage("");
@@ -61,7 +48,7 @@ export default function Home() {
     },
   });
 
-  const handleLightClick = (id: number) => {
+  const handleLightClick = (id: string) => {
     setActiveWindowId(id);
   };
 
@@ -72,11 +59,9 @@ export default function Home() {
     });
   };
 
-  const litCount = stats?.litCount ?? lights.length;
-  const totalWindows = stats?.totalCount ?? 5000;
-
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans flex flex-col overflow-x-hidden">
+      
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -96,7 +81,7 @@ export default function Home() {
       <main className="flex-grow pt-16 flex flex-col items-center relative">
         <HeroSection
           onAddLightClick={handleAddLightClick}
-          litCount={litCount}
+          litCount={lights.length}
           totalCount={totalWindows}
         />
 
@@ -104,7 +89,7 @@ export default function Home() {
           ref={skylineSectionRef}
           className="w-full h-[600px] -mt-20 px-4 flex items-end justify-center relative z-10 overflow-hidden"
         >
-          <Skyline litCount={litCount} totalCount={totalWindows} />
+          <Skyline lights={lights} onLightClick={handleLightClick} />
         </div>
 
         {/* MODAL */}
@@ -112,7 +97,7 @@ export default function Home() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-neutral-900 border border-purple-500/30 p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl shadow-purple-900/20 animate-in fade-in zoom-in duration-300">
               <h3 className="text-xl text-white font-light">
-                Illuminate Window #{activeWindowId}
+                Illuminate Window {activeWindowId}
               </h3>
 
               <div className="space-y-2">
