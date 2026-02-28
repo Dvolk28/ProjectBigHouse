@@ -5,14 +5,12 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Skyline from "@/components/Skyline";
 import HeroSection from "@/components/HeroSection";
-
-type Light = {
-  id: number;
-  windowId: number;
-  name: string;
-  goal: string;
-  color: string;
-};
+import {
+  createIlluminationSchema,
+  illuminationRecordListSchema,
+  skylineStatsSchema,
+  type CreateIlluminationInput,
+} from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
@@ -21,19 +19,34 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const skylineSectionRef = useRef<HTMLDivElement>(null);
 
-  const { data: lights = [] } = useQuery<Light[]>({
+  const { data: lights = [] } = useQuery({
     queryKey: ["/api/lights"],
+    queryFn: async () => {
+      const res = await fetch("/api/lights", { credentials: "include" });
+      const json = await res.json();
+      return illuminationRecordListSchema.parse(json);
+    },
   });
 
-  const totalWindows = 5000;
+  const { data: stats } = useQuery({
+    queryKey: ["/api/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/stats", { credentials: "include" });
+      const json = await res.json();
+      return skylineStatsSchema.parse(json);
+    },
+  });
 
   const mutation = useMutation({
-    mutationFn: async (newLight: any) => {
-      const res = await apiRequest("POST", "/api/lights", newLight);
-      return res.json();
+    mutationFn: async (newLight: CreateIlluminationInput) => {
+      const payload = createIlluminationSchema.parse(newLight);
+      const res = await apiRequest("POST", "/api/lights", payload);
+      const json = await res.json();
+      return illuminationRecordListSchema.element.parse(json);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lights"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Success!", description: "You have lit up a window!" });
       setName("");
       setMessage("");
@@ -59,9 +72,11 @@ export default function Home() {
     });
   };
 
+  const litCount = stats?.litCount ?? lights.length;
+  const totalWindows = stats?.totalCount ?? 5000;
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans flex flex-col overflow-x-hidden">
-      
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -81,7 +96,7 @@ export default function Home() {
       <main className="flex-grow pt-16 flex flex-col items-center relative">
         <HeroSection
           onAddLightClick={handleAddLightClick}
-          litCount={lights.length}
+          litCount={litCount}
           totalCount={totalWindows}
         />
 
@@ -89,7 +104,7 @@ export default function Home() {
           ref={skylineSectionRef}
           className="w-full h-[600px] -mt-20 px-4 flex items-end justify-center relative z-10 overflow-hidden"
         >
-          <Skyline lights={lights} onLightClick={handleLightClick} />
+          <Skyline litCount={litCount} totalCount={totalWindows} />
         </div>
 
         {/* MODAL */}
@@ -136,7 +151,7 @@ export default function Home() {
                     mutation.mutate({
                       windowId: activeWindowId,
                       name,
-                                    goal: message,
+                      goal: message,
                       color: "yellow",
                     })
                   }
