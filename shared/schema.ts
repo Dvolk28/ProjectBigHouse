@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -19,11 +19,11 @@ export type User = typeof users.$inferSelect;
 
 export const illuminations = pgTable("illuminations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  windowId: integer("window_id").notNull(),
+  windowId: text("window_id").notNull(), // Stable window ID in the form building-row-col
   name: text("name").notNull(),
   goal: text("goal").notNull(),
   color: text("color").notNull().default("yellow"),
-  timestamp: text("timestamp").notNull(),
+  timestamp: text("timestamp").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const insertIlluminationSchema = createInsertSchema(illuminations).omit({
@@ -34,11 +34,11 @@ export type Illumination = typeof illuminations.$inferSelect;
 export type InsertIllumination = z.infer<typeof insertIlluminationSchema>;
 
 export const illuminationRecordSchema = z.object({
-  windowId: z.number().int().min(1).max(5000),
+  windowId: z.string().min(3).max(100),
   name: z.string().min(2).max(50),
   goal: z.string().min(10).max(200),
-  color: z.string().min(1).max(50).default("yellow"),
-  timestamp: z.string().datetime({ offset: true }),
+  color: z.string().min(1).default("yellow"),
+  timestamp: z.string(),
 });
 
 export const createIlluminationSchema = illuminationRecordSchema.omit({
@@ -47,28 +47,6 @@ export const createIlluminationSchema = illuminationRecordSchema.omit({
 
 export type IlluminationRecord = z.infer<typeof illuminationRecordSchema>;
 export type CreateIlluminationInput = z.infer<typeof createIlluminationSchema>;
-export const illuminationRecordListSchema = z.array(illuminationRecordSchema);
-
-export const skylineStatsSchema = z.object({
-  litCount: z.number().int().nonnegative(),
-  totalCount: z.number().int().positive(),
-  availableCount: z.number().int().nonnegative(),
-});
-
-export type SkylineStats = z.infer<typeof skylineStatsSchema>;
-
-export type Building = {
-  id: string;
-  name: string;
-  height: number;
-  width: number;
-  style: string;
-  zIndex: number;
-  isLit: boolean;
-  ownerName: string | null;
-  goal: string | null;
-};
-
 
 // This keeps your form validation working
 export const illuminateBuildingSchema = z.object({
