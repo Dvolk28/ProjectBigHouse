@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +32,6 @@ const WINDOW_GAP_X = 9;
 const WINDOW_GAP_Y = 10;
 const BASE_HEIGHT = 455;
 
-// Structured to resemble Cleveland's skyline silhouette with a pronounced center mass.
 const BUILDINGS: Building[] = [
   { id: "shoreway", name: "North Coast", x: 96, width: 90, height: 132, color: "#151a33", crown: "step" },
   { id: "weston", name: "Weston", x: 204, width: 58, height: 150, color: "#161b34" },
@@ -63,7 +63,7 @@ function renderCrown(building: Building) {
           width={18}
           height={12}
           fill="#242a46"
-@@ -75,87 +75,135 @@ function renderCrown(building: Building) {
+        />
       </g>
     );
   }
@@ -142,7 +142,7 @@ function renderCrown(building: Building) {
 export default function Skyline({ lights, onLightClick }: SkylineProps) {
   const lightByWindowId = useMemo(
     () => new Map(lights.map((light) => [light.windowId, light])),
-    [lights],
+    [lights]
   );
 
   return (
@@ -190,12 +190,38 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
                     x: 10 + col * WINDOW_GAP_X,
                     y: bodyTop + 14 + row * WINDOW_GAP_Y,
                   };
-                }),
+                })
               ).flat();
 
               return (
                 <g key={building.id} transform={`translate(${building.x}, 0)`}>
                   {renderCrown(building)}
-
                   <rect
                     x={0}
+                    y={bodyTop}
+                    width={building.width}
+                    height={building.height}
+                    fill={building.color || "#111"}
+                  />
+                  {windows.map((win) => (
+                    <Tooltip key={win.id} content={lightByWindowId.get(win.id)?.goal || ""}>
+                      <rect
+                        x={win.x}
+                        y={win.y}
+                        width={WINDOW_SIZE}
+                        height={WINDOW_SIZE}
+                        fill={lightByWindowId.get(win.id)?.color || "#222"}
+                        onClick={() => onLightClick(win.id)}
+                        className="cursor-pointer transition-colors"
+                      />
+                    </Tooltip>
+                  ))}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </TooltipProvider>
+    </div>
+  );
+}
