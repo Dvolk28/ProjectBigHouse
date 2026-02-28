@@ -35,7 +35,7 @@ export default function Home() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lights"] });
       toast({ title: "Success!", description: "You have lit up a window!" });
-      setName("");
+         setName("");
       setMessage("");
       setActiveWindowId(null);
     },
@@ -60,7 +60,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-neutral-950 to-black text-white font-sans flex flex-col overflow-x-hidden">
+    <div className="relative min-h-screen text-white font-sans flex flex-col overflow-x-hidden bg-[#05060f]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: [
+            "radial-gradient(ellipse at 50% -12%, rgba(164, 111, 255, 0.34) 0%, rgba(94, 58, 166, 0.20) 30%, rgba(8, 10, 24, 0) 62%)",
+            "linear-gradient(180deg, #0d1022 0%, #070916 42%, #060713 100%)",
+          ].join(", "),
+        }}
+      />
       
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/20 backdrop-blur-md">
@@ -78,7 +88,7 @@ export default function Home() {
       </header>
 
       {/* MAIN */}
-      <main className="flex-grow pt-16 flex flex-col items-center relative">
+      <main className="flex-grow pt-16 flex flex-col items-center relative z-10">
         <HeroSection
           onAddLightClick={handleAddLightClick}
           litCount={lights.length}
@@ -87,7 +97,7 @@ export default function Home() {
 
         <div
           ref={skylineSectionRef}
-          className="w-full h-[620px] -mt-32 flex items-end justify-center relative z-10 overflow-hidden"
+          className="w-full h-[620px] -mt-36 flex items-end justify-center relative z-10"
         >
           <Skyline lights={lights} onLightClick={handleLightClick} />
         </div>
@@ -112,45 +122,3 @@ export default function Home() {
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs uppercase text-neutral-500">
-                  Your Ambition
-                </label>
-                <textarea
-                  className="w-full bg-neutral-800 border border-white/10 rounded p-2 text-white focus:outline-none focus:border-yellow-500 h-24"
-                  placeholder="What is your dream?"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setActiveWindowId(null)}
-                  className="flex-1 py-2 rounded border border-white/10 text-neutral-400 hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() =>
-                    mutation.mutate({
-                      windowId: activeWindowId,
-                      name,
-                      goal: message,
-                      color: "yellow",
-                    })
-                  }
-                  disabled={mutation.isPending || !name || message.length < 10}
-                  className="flex-1 py-2 rounded bg-yellow-600 text-white font-medium hover:bg-yellow-500 disabled:opacity-50 transition-colors"
-                >
-                  {mutation.isPending ? "Saving..." : "Illuminate"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
