@@ -1,85 +1,44 @@
 import type { Express } from "express";
 import type { Server } from "http";
-import { storage } from "./storage";
-import { createIlluminationSchema, illuminateBuildingSchema, illuminationRecordSchema, illuminations } from "@shared/schema";
+import {
+  createIlluminationSchema,
+  illuminationRecordListSchema,
+  illuminationRecordSchema,
+  skylineStatsSchema,
+  type IlluminationRecord,
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { fromError } from "zod-validation-error";
-import { db } from "./db";
+
+const TOTAL_WINDOWS = 5000;
+const lightsByWindowId = new Map<number, IlluminationRecord>();
+
+const getOrderedLights = () =>
+  Array.from(lightsByWindowId.values()).sort(
+    (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
+  );
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
-  await storage.initializeBuildings();
-
-  app.get("/api/buildings", async (_req, res) => {
-    try {
-      const buildings = await storage.getAllBuildings();
-      res.json(buildings);
-    } catch (error) {
-      console.error("Error fetching buildings:", error);
-      res.status(500).json({ message: "Failed to fetch buildings" });
-    }
+  app.get("/api/lights", (_req, res) => {
+    const lights = illuminationRecordListSchema.parse(getOrderedLights());
+    res.json(lights);
   });
 
-  app.post("/api/illuminate", async (req, res) => {
-    try {
-      const data = illuminateBuildingSchema.parse(req.body);
-      const unlitBuildings = await storage.getUnlitBuildings();
-
-      if (unlitBuildings.length === 0) {
-        return res.status(400).json({ message: "All buildings are already illuminated" });
-      }
-
-      const selectedBuilding = unlitBuildings[Math.floor(Math.random() * unlitBuildings.length)];
-      const illuminatedBuilding = await storage.illuminateBuilding(selectedBuilding.id, data.name, data.goal);
-
-      if (!illuminatedBuilding) {
-        return res.status(500).json({ message: "Failed to illuminate building" });
-      }
-
-      res.json(illuminatedBuilding);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const validationError = fromError(error);
-        return res.status(400).json({ message: validationError.message });
-      }
-
-      console.error("Error illuminating building:", error);
-      res.status(500).json({ message: "Failed to illuminate building" });
-    }
-  });
-
-  app.get("/api/lights", async (_req, res) => {
-    try {
-      const rows = await db.select().from(illuminations);
-      const lights = rows.map(({ id: _id, ...light }) =>
-        illuminationRecordSchema.parse(light),
-      );
-      res.json(lights);
-    } catch (error) {
-      console.error("Error fetching lights:", error);
-      res.status(500).json({ message: "Failed to fetch lights" });
-    }
-  });
-
-  app.post("/api/lights", async (req, res) => {
+  app.post("/api/lights", (req, res) => {
     try {
       const parsed = createIlluminationSchema.parse(req.body);
-      const newLight = {
+      const timestamp = new Date().toISOString();
+
+      const newLight: IlluminationRecord = {
         ...parsed,
-        timestamp: new Date().toISOString(),
+        timestamp,
       };
 
-      const [savedLight] = await db
-        .insert(illuminations)
-        .values(newLight)
-        .returning();
-
-      const { id: _id, ...lightPayload } = savedLight;
-      const validatedLight = illuminationRecordSchema.parse(lightPayload);
-
-      res.status(201).json(validatedLight);
+      lightsByWindowId.set(newLight.windowId, newLight);
+      res.status(201).json(illuminationRecordSchema.parse(newLight));
     } catch (error) {
       if (error instanceof ZodError) {
         const validationError = fromError(error);
@@ -91,30 +50,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stats", async (_req, res) => {
-    try {
-      const buildings = await storage.getAllBuildings();
-      const litCount = buildings.filter((building) => building.isLit).length;
-      res.json({
-        litCount,
-        totalCount: buildings.length,
-        availableCount: buildings.length - litCount,
-      });
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
-    }
+  app.get("/api/stats", (_req, res) => {
+    const litCount = lightsByWindowId.size;
+    const stats = skylineStatsSchema.parse({
+      litCount,
+      totalCount: TOTAL_WINDOWS,
+      availableCount: TOTAL_WINDOWS - litCount,
+    });
+    res.json(stats);
   });
 
-  app.post("/api/reset", async (_req, res) => {
-    try {
-      await storage.resetLights();
-      await db.delete(illuminations);
-      res.json({ message: "Skyline reset successfully" });
-    } catch (error) {
-      console.error("Error resetting skyline:", error);
-      res.status(500).json({ message: "Failed to reset skyline" });
-    }
+  app.post("/api/reset", (_req, res) => {
+    lightsByWindowId.clear();
+    res.json({ message: "Skyline reset successfully" });
   });
 
   return httpServer;
