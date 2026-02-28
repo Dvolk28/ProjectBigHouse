@@ -17,18 +17,88 @@ interface SkylineProps {
   onLightClick: (windowId: string) => void;
 }
 
-const WINDOW_SIZE = 6;
-const WINDOW_GAP = 10;
-const BASE_HEIGHT = 420;
+type Building = {
+  id: string;
+  name: string;
+  x: number;
+  width: number;
+  height: number;
+  color?: string;
+  crown?: "pyramid" | "antenna" | "step";
+};
 
-const BUILDINGS = [
-  { id: "key-tower", name: "Key Tower", width: 90, height: 340 },
-  { id: "200-public", name: "200 Public", width: 70, height: 300 },
-  { id: "terminal-tower", name: "Terminal Tower", width: 110, height: 380 },
-  { id: "bp-tower", name: "BP Tower", width: 80, height: 260 },
-  { id: "justice-center", name: "Justice Center", width: 140, height: 180 },
-  { id: "huntington", name: "Huntington", width: 85, height: 250 },
+const WINDOW_SIZE = 5;
+const WINDOW_GAP_X = 9;
+const WINDOW_GAP_Y = 10;
+const BASE_HEIGHT = 455;
+
+// Structured to resemble Cleveland's skyline silhouette with a pronounced center mass.
+const BUILDINGS: Building[] = [
+  { id: "shoreway", name: "North Coast", x: 96, width: 90, height: 132, color: "#151a33", crown: "step" },
+  { id: "weston", name: "Weston", x: 204, width: 58, height: 150, color: "#161b34" },
+  { id: "key-tower", name: "Key Tower", x: 286, width: 118, height: 330, crown: "pyramid", color: "#1a1f3a" },
+  { id: "terminal-tower", name: "Terminal Tower", x: 426, width: 88, height: 260, crown: "step", color: "#1d2140" },
+  { id: "200-public", name: "200 Public Square", x: 536, width: 100, height: 292, crown: "step", color: "#1b203b" },
+  { id: "bp-tower", name: "BP Tower", x: 662, width: 66, height: 248, crown: "antenna", color: "#1a1f39" },
+  { id: "justice-center", name: "Justice Center", x: 748, width: 138, height: 206, color: "#171c35" },
+  { id: "one-cleveland", name: "One Cleveland", x: 914, width: 72, height: 228, color: "#181d36" },
+  { id: "harbor", name: "Harbor", x: 1006, width: 114, height: 138, color: "#141a31" },
 ];
+
+function renderCrown(building: Building) {
+  if (building.crown === "pyramid") {
+    return (
+      <polygon
+        points={`${building.width / 2},${BASE_HEIGHT - building.height - 34} 8,${BASE_HEIGHT - building.height} ${building.width - 8},${BASE_HEIGHT - building.height}`}
+        fill="#252b48"
+      />
+    );
+  }
+
+  if (building.crown === "antenna") {
+    return (
+      <g>
+        <rect
+          x={building.width / 2 - 9}
+          y={BASE_HEIGHT - building.height - 12}
+          width={18}
+          height={12}
+          fill="#242a46"
+        />
+        <rect
+          x={building.width / 2 - 1}
+          y={BASE_HEIGHT - building.height - 48}
+          width={2}
+          height={36}
+          fill="#5f6693"
+        />
+      </g>
+    );
+  }
+
+  if (building.crown === "step") {
+    return (
+      <g>
+        <rect
+          x={building.width * 0.2}
+          y={BASE_HEIGHT - building.height - 12}
+          width={building.width * 0.6}
+          height={12}
+          fill="#212743"
+        />
+        <rect
+          x={building.width * 0.34}
+          y={BASE_HEIGHT - building.height - 24}
+          width={building.width * 0.32}
+          height={12}
+          fill="#272d4a"
+        />
+      </g>
+    );
+  }
+
+  return null;
+}
 
 export default function Skyline({ lights, onLightClick }: SkylineProps) {
   const lightByWindowId = useMemo(
@@ -37,61 +107,65 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
   );
 
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-b from-[#0f1020] to-[#0a0b16]">
+    <div
+      className="relative w-full overflow-hidden"
+      style={{
+        WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 16%, black 100%)",
+        maskImage: "linear-gradient(to bottom, transparent 0%, black 16%, black 100%)",
+      }}
+    >
       <TooltipProvider delayDuration={120}>
         <svg
-          viewBox="0 0 1200 500"
-          className="w-full h-[500px]"
-          preserveAspectRatio="xMidYMax slice"
+          viewBox="0 0 1200 520"
+          className="w-full h-full min-h-[520px]"
+          preserveAspectRatio="none"
         >
-          {/* Purple skyline glow */}
           <defs>
-            <radialGradient id="skyGlow" cx="50%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#a970ff" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="transparent" />
+            <radialGradient id="cleSkyGlow" cx="50%" cy="18%" r="70%">
+              <stop offset="0%" stopColor="#a970ff" stopOpacity="0.24" />
+              <stop offset="48%" stopColor="#3e2569" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="#080a18" stopOpacity="0" />
             </radialGradient>
+            <linearGradient id="cityMist" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#9d6bff" stopOpacity="0.03" />
+              <stop offset="100%" stopColor="#090b1a" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
-          <rect width="1200" height="500" fill="url(#skyGlow)" />
+          <rect width="1200" height="520" fill="url(#cleSkyGlow)" />
+          <rect width="1200" height="520" fill="url(#cityMist)" />
 
-          {/* Buildings */}
-          <g transform="translate(100, 80)">
-            {BUILDINGS.map((building, i) => {
-              const xOffset = BUILDINGS.slice(0, i).reduce(
-                (sum, b) => sum + b.width + 25,
-                0,
-              );
-
-              const cols = Math.floor((building.width - 20) / WINDOW_GAP);
-              const rows = Math.floor((building.height - 30) / WINDOW_GAP);
+          {/* Foreground skyline */}
+          <g>
+            {BUILDINGS.map((building) => {
+              const cols = Math.max(1, Math.floor((building.width - 18) / WINDOW_GAP_X));
+              const rows = Math.max(1, Math.floor((building.height - 24) / WINDOW_GAP_Y));
+              const bodyTop = BASE_HEIGHT - building.height;
 
               const windows = Array.from({ length: rows }, (_, row) =>
                 Array.from({ length: cols }, (_, col) => {
                   const windowId = `${building.id}-${row}-${col}`;
-
                   return {
                     id: windowId,
-                    row,
-                    col,
-                    x: 10 + col * WINDOW_GAP,
-                    y: BASE_HEIGHT - building.height + 15 + row * WINDOW_GAP,
+                    x: 10 + col * WINDOW_GAP_X,
+                    y: bodyTop + 14 + row * WINDOW_GAP_Y,
                   };
                 }),
               ).flat();
 
               return (
-                <g key={building.id} transform={`translate(${xOffset}, 0)`}>
-                  {/* Building Body */}
+                <g key={building.id} transform={`translate(${building.x}, 0)`}>
+                  {renderCrown(building)}
+
                   <rect
                     x={0}
-                    y={BASE_HEIGHT - building.height}
+                    y={bodyTop}
                     width={building.width}
                     height={building.height}
-                    fill="#1a1c2e"
+                    fill={building.color ?? "#1a1d34"}
                     rx={2}
                   />
 
-                  {/* Windows */}
                   {windows.map((windowObj) => {
                     const light = lightByWindowId.get(windowObj.id);
                     const isLit = Boolean(light);
@@ -103,8 +177,9 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
                         y={windowObj.y}
                         width={WINDOW_SIZE}
                         height={WINDOW_SIZE}
-                        fill={isLit ? "#c084fc" : "#2a2d44"}
-                        stroke={isLit ? "#f0abfc" : "#4c4f70"}
+                        fill={isLit ? "#c084fc" : "#2a2e4a"}
+                        stroke={isLit ? "#f0abfc" : "#4e5580"}
+                        strokeWidth={0.8}
                         className="cursor-pointer transition-all duration-150 hover:fill-[#8b5cf6] hover:stroke-[#d8b4fe]"
                         rx={1}
                         onClick={() => onLightClick(windowObj.id)}
@@ -130,14 +205,9 @@ export default function Skyline({ lights, onLightClick }: SkylineProps) {
             })}
           </g>
 
-          {/* Ground line */}
-          <rect
-            x="0"
-            y={BASE_HEIGHT + 80}
-            width="1200"
-            height="4"
-            fill="#14162a"
-          />
+          {/* Horizon and water */}
+          <rect x="0" y="455" width="1200" height="3" fill="#181c35" />
+          <rect x="0" y="458" width="1200" height="62" fill="#090c1c" opacity="0.85" />
         </svg>
       </TooltipProvider>
     </div>
