@@ -109,7 +109,7 @@ export class MemStorage implements IStorage {
   }
 
   async resetLights(): Promise<void> {
-    for (const [id, building] of this.buildings) {
+    for (const [id, building] of Array.from(this.buildings.entries())) {
       this.buildings.set(id, {
         ...building,
         isLit: false,
