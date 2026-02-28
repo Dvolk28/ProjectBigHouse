@@ -47,6 +47,28 @@ export const createIlluminationSchema = illuminationRecordSchema.omit({
 
 export type IlluminationRecord = z.infer<typeof illuminationRecordSchema>;
 export type CreateIlluminationInput = z.infer<typeof createIlluminationSchema>;
+export const illuminationRecordListSchema = z.array(illuminationRecordSchema);
+
+export const skylineStatsSchema = z.object({
+  litCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().positive(),
+  availableCount: z.number().int().nonnegative(),
+});
+
+export type SkylineStats = z.infer<typeof skylineStatsSchema>;
+
+export type Building = {
+  id: string;
+  name: string;
+  height: number;
+  width: number;
+  style: string;
+  zIndex: number;
+  isLit: boolean;
+  ownerName: string | null;
+  goal: string | null;
+};
+
 
 // This keeps your form validation working
 export const illuminateBuildingSchema = z.object({
