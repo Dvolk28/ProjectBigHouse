@@ -13,7 +13,7 @@ export default function HeroSection({
   totalCount,
 }: HeroSectionProps) {
   return (
-    <section className="relative min-h-[90vh] pb-20 flex flex-col items-center justify-center px-4 text-center">
+    <section className="relative w-full min-h-[90vh] pb-20 flex flex-col items-center justify-center px-4 text-center">
       
       {/* Background Glow */}
       <div
